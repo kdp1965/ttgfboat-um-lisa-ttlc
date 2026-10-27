@@ -111,26 +111,6 @@ library (RAM32) {
       capacitance : 0.0054;
       timing() {
         related_pin : "CLK";
-        timing_type : hold_rising;
-	rise_constraint(scalar) {
-          values("-7.60751");
-	}
-	fall_constraint(scalar) {
-          values("-9.86698");
-	}
-      }
-      timing() {
-        related_pin : "CLK";
-        timing_type : setup_rising;
-	rise_constraint(scalar) {
-          values("13.67221");
-	}
-	fall_constraint(scalar) {
-          values("16.01890");
-	}
-      }
-      timing() {
-        related_pin : "CLK";
         timing_type : hold_falling;
 	rise_constraint(scalar) {
           values("-4.06250");
@@ -149,6 +129,26 @@ library (RAM32) {
           values("9.24454");
 	}
       }
+      timing() {
+        related_pin : "CLK";
+        timing_type : hold_rising;
+	rise_constraint(scalar) {
+          values("-7.60751");
+	}
+	fall_constraint(scalar) {
+          values("-9.86698");
+	}
+      }
+      timing() {
+        related_pin : "CLK";
+        timing_type : setup_rising;
+	rise_constraint(scalar) {
+          values("13.67221");
+	}
+	fall_constraint(scalar) {
+          values("16.01890");
+	}
+      }
     }
     bus("A0") {
       bus_type : A0;
@@ -157,26 +157,6 @@ library (RAM32) {
     pin("A0[4]") {
       direction : input;
       capacitance : 0.0087;
-      timing() {
-        related_pin : "CLK";
-        timing_type : hold_rising;
-	rise_constraint(scalar) {
-          values("-10.78899");
-	}
-	fall_constraint(scalar) {
-          values("-11.11152");
-	}
-      }
-      timing() {
-        related_pin : "CLK";
-        timing_type : setup_rising;
-	rise_constraint(scalar) {
-          values("19.16072");
-	}
-	fall_constraint(scalar) {
-          values("18.02737");
-	}
-      }
       timing() {
         related_pin : "CLK";
         timing_type : hold_falling;
@@ -197,30 +177,30 @@ library (RAM32) {
           values("13.04716");
 	}
       }
-    }
-    pin("A0[3]") {
-      direction : input;
-      capacitance : 0.0088;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("-7.39876");
+          values("-10.78899");
 	}
 	fall_constraint(scalar) {
-          values("-7.38649");
+          values("-11.11152");
 	}
       }
       timing() {
         related_pin : "CLK";
         timing_type : setup_rising;
 	rise_constraint(scalar) {
-          values("15.79075");
+          values("19.16072");
 	}
 	fall_constraint(scalar) {
-          values("13.87470");
+          values("18.02737");
 	}
       }
+    }
+    pin("A0[3]") {
+      direction : input;
+      capacitance : 0.0088;
       timing() {
         related_pin : "CLK";
         timing_type : hold_falling;
@@ -241,30 +221,30 @@ library (RAM32) {
           values("9.18364");
 	}
       }
-    }
-    pin("A0[2]") {
-      direction : input;
-      capacitance : 0.0066;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("-5.82485");
+          values("-7.39876");
 	}
 	fall_constraint(scalar) {
-          values("-6.30014");
+          values("-7.38649");
 	}
       }
       timing() {
         related_pin : "CLK";
         timing_type : setup_rising;
 	rise_constraint(scalar) {
-          values("12.82337");
+          values("15.79075");
 	}
 	fall_constraint(scalar) {
-          values("14.90937");
+          values("13.87470");
 	}
       }
+    }
+    pin("A0[2]") {
+      direction : input;
+      capacitance : 0.0066;
       timing() {
         related_pin : "CLK";
         timing_type : hold_falling;
@@ -285,30 +265,30 @@ library (RAM32) {
           values("7.47720");
 	}
       }
-    }
-    pin("A0[1]") {
-      direction : input;
-      capacitance : 0.0062;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("-6.23906");
+          values("-5.82485");
 	}
 	fall_constraint(scalar) {
-          values("-6.26483");
+          values("-6.30014");
 	}
       }
       timing() {
         related_pin : "CLK";
         timing_type : setup_rising;
 	rise_constraint(scalar) {
-          values("14.37707");
+          values("12.82337");
 	}
 	fall_constraint(scalar) {
-          values("15.80236");
+          values("14.90937");
 	}
       }
+    }
+    pin("A0[1]") {
+      direction : input;
+      capacitance : 0.0062;
       timing() {
         related_pin : "CLK";
         timing_type : hold_falling;
@@ -329,30 +309,30 @@ library (RAM32) {
           values("7.82464");
 	}
       }
-    }
-    pin("A0[0]") {
-      direction : input;
-      capacitance : 0.0059;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("-5.88230");
+          values("-6.23906");
 	}
 	fall_constraint(scalar) {
-          values("-6.13324");
+          values("-6.26483");
 	}
       }
       timing() {
         related_pin : "CLK";
         timing_type : setup_rising;
 	rise_constraint(scalar) {
-          values("14.64237");
+          values("14.37707");
 	}
 	fall_constraint(scalar) {
-          values("15.16130");
+          values("15.80236");
 	}
       }
+    }
+    pin("A0[0]") {
+      direction : input;
+      capacitance : 0.0059;
       timing() {
         related_pin : "CLK";
         timing_type : hold_falling;
@@ -373,6 +353,26 @@ library (RAM32) {
           values("7.95079");
 	}
       }
+      timing() {
+        related_pin : "CLK";
+        timing_type : hold_rising;
+	rise_constraint(scalar) {
+          values("-5.88230");
+	}
+	fall_constraint(scalar) {
+          values("-6.13324");
+	}
+      }
+      timing() {
+        related_pin : "CLK";
+        timing_type : setup_rising;
+	rise_constraint(scalar) {
+          values("14.64237");
+	}
+	fall_constraint(scalar) {
+          values("15.16130");
+	}
+      }
     }
     }
     bus("Di0") {
@@ -384,16 +384,6 @@ library (RAM32) {
       capacitance : 0.0737;
       timing() {
         related_pin : "CLK";
-        timing_type : hold_rising;
-	rise_constraint(scalar) {
-          values("6.26983");
-	}
-	fall_constraint(scalar) {
-          values("5.87006");
-	}
-      }
-      timing() {
-        related_pin : "CLK";
         timing_type : setup_falling;
 	rise_constraint(scalar) {
           values("-5.69190");
@@ -402,20 +392,20 @@ library (RAM32) {
           values("-5.00464");
 	}
       }
-    }
-    pin("Di0[30]") {
-      direction : input;
-      capacitance : 0.0780;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.14548");
+          values("6.26983");
 	}
 	fall_constraint(scalar) {
-          values("5.78746");
+          values("5.87006");
 	}
       }
+    }
+    pin("Di0[30]") {
+      direction : input;
+      capacitance : 0.0780;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -426,20 +416,20 @@ library (RAM32) {
           values("-4.92194");
 	}
       }
-    }
-    pin("Di0[29]") {
-      direction : input;
-      capacitance : 0.0764;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.15677");
+          values("6.14548");
 	}
 	fall_constraint(scalar) {
-          values("5.78206");
+          values("5.78746");
 	}
       }
+    }
+    pin("Di0[29]") {
+      direction : input;
+      capacitance : 0.0764;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -450,20 +440,20 @@ library (RAM32) {
           values("-4.91790");
 	}
       }
-    }
-    pin("Di0[28]") {
-      direction : input;
-      capacitance : 0.0775;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.15021");
+          values("6.15677");
 	}
 	fall_constraint(scalar) {
-          values("5.78691");
+          values("5.78206");
 	}
       }
+    }
+    pin("Di0[28]") {
+      direction : input;
+      capacitance : 0.0775;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -474,20 +464,20 @@ library (RAM32) {
           values("-4.91785");
 	}
       }
-    }
-    pin("Di0[27]") {
-      direction : input;
-      capacitance : 0.0792;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.13072");
+          values("6.15021");
 	}
 	fall_constraint(scalar) {
-          values("5.78555");
+          values("5.78691");
 	}
       }
+    }
+    pin("Di0[27]") {
+      direction : input;
+      capacitance : 0.0792;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -498,20 +488,20 @@ library (RAM32) {
           values("-4.91982");
 	}
       }
-    }
-    pin("Di0[26]") {
-      direction : input;
-      capacitance : 0.0782;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.15884");
+          values("6.13072");
 	}
 	fall_constraint(scalar) {
-          values("5.80448");
+          values("5.78555");
 	}
       }
+    }
+    pin("Di0[26]") {
+      direction : input;
+      capacitance : 0.0782;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -522,20 +512,20 @@ library (RAM32) {
           values("-4.93850");
 	}
       }
-    }
-    pin("Di0[25]") {
-      direction : input;
-      capacitance : 0.0817;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.05032");
+          values("6.15884");
 	}
 	fall_constraint(scalar) {
-          values("5.72882");
+          values("5.80448");
 	}
       }
+    }
+    pin("Di0[25]") {
+      direction : input;
+      capacitance : 0.0817;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -546,20 +536,20 @@ library (RAM32) {
           values("-4.86313");
 	}
       }
-    }
-    pin("Di0[24]") {
-      direction : input;
-      capacitance : 0.0738;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.25293");
+          values("6.05032");
 	}
 	fall_constraint(scalar) {
-          values("5.85399");
+          values("5.72882");
 	}
       }
+    }
+    pin("Di0[24]") {
+      direction : input;
+      capacitance : 0.0738;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -570,20 +560,20 @@ library (RAM32) {
           values("-4.98648");
 	}
       }
-    }
-    pin("Di0[23]") {
-      direction : input;
-      capacitance : 0.0768;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.65038");
+          values("6.25293");
 	}
 	fall_constraint(scalar) {
-          values("5.28383");
+          values("5.85399");
 	}
       }
+    }
+    pin("Di0[23]") {
+      direction : input;
+      capacitance : 0.0768;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -594,20 +584,20 @@ library (RAM32) {
           values("-5.04097");
 	}
       }
-    }
-    pin("Di0[22]") {
-      direction : input;
-      capacitance : 0.0743;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.74026");
+          values("5.65038");
 	}
 	fall_constraint(scalar) {
-          values("5.35173");
+          values("5.28383");
 	}
       }
+    }
+    pin("Di0[22]") {
+      direction : input;
+      capacitance : 0.0743;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -618,20 +608,20 @@ library (RAM32) {
           values("-5.10867");
 	}
       }
-    }
-    pin("Di0[21]") {
-      direction : input;
-      capacitance : 0.0708;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.81571");
+          values("5.74026");
 	}
 	fall_constraint(scalar) {
-          values("5.39107");
+          values("5.35173");
 	}
       }
+    }
+    pin("Di0[21]") {
+      direction : input;
+      capacitance : 0.0708;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -642,20 +632,20 @@ library (RAM32) {
           values("-5.14820");
 	}
       }
-    }
-    pin("Di0[20]") {
-      direction : input;
-      capacitance : 0.0758;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.65321");
+          values("5.81571");
 	}
 	fall_constraint(scalar) {
-          values("5.27625");
+          values("5.39107");
 	}
       }
+    }
+    pin("Di0[20]") {
+      direction : input;
+      capacitance : 0.0758;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -666,20 +656,20 @@ library (RAM32) {
           values("-5.03353");
 	}
       }
-    }
-    pin("Di0[19]") {
-      direction : input;
-      capacitance : 0.0702;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.86032");
+          values("5.65321");
 	}
 	fall_constraint(scalar) {
-          values("5.43162");
+          values("5.27625");
 	}
       }
+    }
+    pin("Di0[19]") {
+      direction : input;
+      capacitance : 0.0702;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -690,20 +680,20 @@ library (RAM32) {
           values("-5.18853");
 	}
       }
-    }
-    pin("Di0[18]") {
-      direction : input;
-      capacitance : 0.0659;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.97881");
+          values("5.86032");
 	}
 	fall_constraint(scalar) {
-          values("5.50769");
+          values("5.43162");
 	}
       }
+    }
+    pin("Di0[18]") {
+      direction : input;
+      capacitance : 0.0659;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -714,20 +704,20 @@ library (RAM32) {
           values("-5.26460");
 	}
       }
-    }
-    pin("Di0[17]") {
-      direction : input;
-      capacitance : 0.0704;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.82596");
+          values("5.97881");
 	}
 	fall_constraint(scalar) {
-          values("5.39668");
+          values("5.50769");
 	}
       }
+    }
+    pin("Di0[17]") {
+      direction : input;
+      capacitance : 0.0704;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -738,20 +728,20 @@ library (RAM32) {
           values("-5.15383");
 	}
       }
-    }
-    pin("Di0[16]") {
-      direction : input;
-      capacitance : 0.0658;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("5.96410");
+          values("5.82596");
 	}
 	fall_constraint(scalar) {
-          values("5.49196");
+          values("5.39668");
 	}
       }
+    }
+    pin("Di0[16]") {
+      direction : input;
+      capacitance : 0.0658;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -762,20 +752,20 @@ library (RAM32) {
           values("-5.24888");
 	}
       }
-    }
-    pin("Di0[15]") {
-      direction : input;
-      capacitance : 0.0664;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.42776");
+          values("5.96410");
 	}
 	fall_constraint(scalar) {
-          values("5.97124");
+          values("5.49196");
 	}
       }
+    }
+    pin("Di0[15]") {
+      direction : input;
+      capacitance : 0.0664;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -786,20 +776,20 @@ library (RAM32) {
           values("-5.32034");
 	}
       }
-    }
-    pin("Di0[14]") {
-      direction : input;
-      capacitance : 0.0600;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.59841");
+          values("6.42776");
 	}
 	fall_constraint(scalar) {
-          values("6.08000");
+          values("5.97124");
 	}
       }
+    }
+    pin("Di0[14]") {
+      direction : input;
+      capacitance : 0.0600;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -810,20 +800,20 @@ library (RAM32) {
           values("-5.43008");
 	}
       }
-    }
-    pin("Di0[13]") {
-      direction : input;
-      capacitance : 0.0662;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.42117");
+          values("6.59841");
 	}
 	fall_constraint(scalar) {
-          values("5.96236");
+          values("6.08000");
 	}
       }
+    }
+    pin("Di0[13]") {
+      direction : input;
+      capacitance : 0.0662;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -834,20 +824,20 @@ library (RAM32) {
           values("-5.31172");
 	}
       }
-    }
-    pin("Di0[12]") {
-      direction : input;
-      capacitance : 0.0653;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.41314");
+          values("6.42117");
 	}
 	fall_constraint(scalar) {
-          values("5.94294");
+          values("5.96236");
 	}
       }
+    }
+    pin("Di0[12]") {
+      direction : input;
+      capacitance : 0.0653;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -858,20 +848,20 @@ library (RAM32) {
           values("-5.29121");
 	}
       }
-    }
-    pin("Di0[11]") {
-      direction : input;
-      capacitance : 0.0644;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.47414");
+          values("6.41314");
 	}
 	fall_constraint(scalar) {
-          values("5.99728");
+          values("5.94294");
 	}
       }
+    }
+    pin("Di0[11]") {
+      direction : input;
+      capacitance : 0.0644;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -882,20 +872,20 @@ library (RAM32) {
           values("-5.34764");
 	}
       }
-    }
-    pin("Di0[10]") {
-      direction : input;
-      capacitance : 0.0622;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.53956");
+          values("6.47414");
 	}
 	fall_constraint(scalar) {
-          values("6.04270");
+          values("5.99728");
 	}
       }
+    }
+    pin("Di0[10]") {
+      direction : input;
+      capacitance : 0.0622;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -906,20 +896,20 @@ library (RAM32) {
           values("-5.39219");
 	}
       }
-    }
-    pin("Di0[9]") {
-      direction : input;
-      capacitance : 0.0555;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.72384");
+          values("6.53956");
 	}
 	fall_constraint(scalar) {
-          values("6.16090");
+          values("6.04270");
 	}
       }
+    }
+    pin("Di0[9]") {
+      direction : input;
+      capacitance : 0.0555;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -930,20 +920,20 @@ library (RAM32) {
           values("-5.50927");
 	}
       }
-    }
-    pin("Di0[8]") {
-      direction : input;
-      capacitance : 0.0626;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.50446");
+          values("6.72384");
 	}
 	fall_constraint(scalar) {
-          values("6.00905");
+          values("6.16090");
 	}
       }
+    }
+    pin("Di0[8]") {
+      direction : input;
+      capacitance : 0.0626;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -954,20 +944,20 @@ library (RAM32) {
           values("-5.35769");
 	}
       }
-    }
-    pin("Di0[7]") {
-      direction : input;
-      capacitance : 0.0531;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.38266");
+          values("6.50446");
 	}
 	fall_constraint(scalar) {
-          values("5.79572");
+          values("6.00905");
 	}
       }
+    }
+    pin("Di0[7]") {
+      direction : input;
+      capacitance : 0.0531;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -978,20 +968,20 @@ library (RAM32) {
           values("-5.39087");
 	}
       }
-    }
-    pin("Di0[6]") {
-      direction : input;
-      capacitance : 0.0488;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.54499");
+          values("6.38266");
 	}
 	fall_constraint(scalar) {
-          values("5.91741");
+          values("5.79572");
 	}
       }
+    }
+    pin("Di0[6]") {
+      direction : input;
+      capacitance : 0.0488;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1002,20 +992,20 @@ library (RAM32) {
           values("-5.51239");
 	}
       }
-    }
-    pin("Di0[5]") {
-      direction : input;
-      capacitance : 0.0537;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.38188");
+          values("6.54499");
 	}
 	fall_constraint(scalar) {
-          values("5.80136");
+          values("5.91741");
 	}
       }
+    }
+    pin("Di0[5]") {
+      direction : input;
+      capacitance : 0.0537;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1026,20 +1016,20 @@ library (RAM32) {
           values("-5.39473");
 	}
       }
-    }
-    pin("Di0[4]") {
-      direction : input;
-      capacitance : 0.0548;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.32487");
+          values("6.38188");
 	}
 	fall_constraint(scalar) {
-          values("5.75175");
+          values("5.80136");
 	}
       }
+    }
+    pin("Di0[4]") {
+      direction : input;
+      capacitance : 0.0548;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1050,20 +1040,20 @@ library (RAM32) {
           values("-5.34671");
 	}
       }
-    }
-    pin("Di0[3]") {
-      direction : input;
-      capacitance : 0.0524;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.41989");
+          values("6.32487");
 	}
 	fall_constraint(scalar) {
-          values("5.82844");
+          values("5.75175");
 	}
       }
+    }
+    pin("Di0[3]") {
+      direction : input;
+      capacitance : 0.0524;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1074,20 +1064,20 @@ library (RAM32) {
           values("-5.42329");
 	}
       }
-    }
-    pin("Di0[2]") {
-      direction : input;
-      capacitance : 0.0516;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.44475");
+          values("6.41989");
 	}
 	fall_constraint(scalar) {
-          values("5.84510");
+          values("5.82844");
 	}
       }
+    }
+    pin("Di0[2]") {
+      direction : input;
+      capacitance : 0.0516;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1098,20 +1088,20 @@ library (RAM32) {
           values("-5.43891");
 	}
       }
-    }
-    pin("Di0[1]") {
-      direction : input;
-      capacitance : 0.0494;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.51902");
+          values("6.44475");
 	}
 	fall_constraint(scalar) {
-          values("5.89612");
+          values("5.84510");
 	}
       }
+    }
+    pin("Di0[1]") {
+      direction : input;
+      capacitance : 0.0494;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1122,20 +1112,20 @@ library (RAM32) {
           values("-5.48971");
 	}
       }
-    }
-    pin("Di0[0]") {
-      direction : input;
-      capacitance : 0.0457;
       timing() {
         related_pin : "CLK";
         timing_type : hold_rising;
 	rise_constraint(scalar) {
-          values("6.62637");
+          values("6.51902");
 	}
 	fall_constraint(scalar) {
-          values("5.96404");
+          values("5.89612");
 	}
       }
+    }
+    pin("Di0[0]") {
+      direction : input;
+      capacitance : 0.0457;
       timing() {
         related_pin : "CLK";
         timing_type : setup_falling;
@@ -1144,6 +1134,16 @@ library (RAM32) {
 	}
 	fall_constraint(scalar) {
           values("-5.55910");
+	}
+      }
+      timing() {
+        related_pin : "CLK";
+        timing_type : hold_rising;
+	rise_constraint(scalar) {
+          values("6.62637");
+	}
+	fall_constraint(scalar) {
+          values("5.96404");
 	}
       }
     }

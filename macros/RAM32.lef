@@ -647,79 +647,7 @@ MACRO RAM32
         RECT 673.920 11.200 675.920 11.760 ;
     END
   END EN0
-  PIN VDD
-    DIRECTION INOUT ;
-    USE POWER ;
-    PORT
-      LAYER Metal4 ;
-        RECT 16.640 3.620 18.240 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 55.510 3.620 57.110 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 94.380 3.620 95.980 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 133.250 3.620 134.850 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 172.120 3.620 173.720 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 210.990 3.620 212.590 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 249.860 3.620 251.460 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 288.730 3.620 290.330 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 327.600 3.620 329.200 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 366.470 3.620 368.070 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 405.340 3.620 406.940 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 444.210 3.620 445.810 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 483.080 3.620 484.680 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 521.950 3.620 523.550 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 560.820 3.620 562.420 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 599.690 3.620 601.290 164.940 ;
-    END
-    PORT
-      LAYER Metal4 ;
-        RECT 638.560 3.620 640.160 164.940 ;
-    END
-  END VDD
-  PIN VSS
+  PIN VGND
     DIRECTION INOUT ;
     USE GROUND ;
     PORT
@@ -790,7 +718,79 @@ MACRO RAM32
       LAYER Metal4 ;
         RECT 641.860 3.620 643.460 164.940 ;
     END
-  END VSS
+  END VGND
+  PIN VPWR
+    DIRECTION INOUT ;
+    USE POWER ;
+    PORT
+      LAYER Metal4 ;
+        RECT 16.640 3.620 18.240 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 55.510 3.620 57.110 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 94.380 3.620 95.980 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 133.250 3.620 134.850 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 172.120 3.620 173.720 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 210.990 3.620 212.590 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 249.860 3.620 251.460 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 288.730 3.620 290.330 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 327.600 3.620 329.200 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 366.470 3.620 368.070 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 405.340 3.620 406.940 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 444.210 3.620 445.810 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 483.080 3.620 484.680 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 521.950 3.620 523.550 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 560.820 3.620 562.420 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 599.690 3.620 601.290 164.940 ;
+    END
+    PORT
+      LAYER Metal4 ;
+        RECT 638.560 3.620 640.160 164.940 ;
+    END
+  END VPWR
   PIN WE0[0]
     DIRECTION INPUT ;
     USE SIGNAL ;
