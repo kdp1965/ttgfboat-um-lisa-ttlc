@@ -1,5 +1,7 @@
 ## What is LISA with TTLC?
 
+(On the GF180 chip: LISA without the TTLC and without the BF16 unit, see the notes in those sections.)
+
 LISA is a Microcontroller built around a custom 8-Bit Little ISA (LISA)
 microprocessor core.  It includes several standard peripherals that
 would be found on commercial microcontrollers including timers, GPIO,
@@ -676,6 +678,12 @@ the result back with 'tfa'.  The facc and f0 - f3 registers can also be read thr
 (registers 0x30 - 0x34), and they are all cleared to zero at reset.
 
 ## The Tiny Tapeout Logic Controller (TTLC)
+
+**Not on the GF180 chip.**  The sky130 LISA chips have the TTLC this section describes; on GF180 it is
+compiled out (GF180.md) - all that remains of it is the I/O block's 48 output flops, which the WS2812B
+driver uses as its pixel store and the core writes through the TTLC I/O window's TIDX / TDATA (bytes 0-5;
+the other bytes read 0, a scan START does nothing), and its QSPI fetch channel as the driver's DMA
+engine.  The debug registers 0x40-0x4a exist but control nothing.  The section is kept for the sky130 chips.
 
 The second subsystem within this design is a small PLC type circuit.  It is architected around a 1-bit processor from 1977
 designed by Motorola ... the MC14500B Industrial Control Unit (ICU).  The TTLC wraps the ICU "processor" with an instruction

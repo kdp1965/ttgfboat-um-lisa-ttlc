@@ -65,6 +65,11 @@ SUCH DAMAGE.
 // ==============================================================================
 
 `define WANT_UART2
+// `define WANT_TTLC    // the Tiny Tapeout Logic Controller: not on the GF180 chip (GF180.md) - the
+                        // MC14500B core, the 74HC595 / 74HC165 scan chains and their interlock with
+                        // the SPI master go; ttlc_io's 48 output flops, ttlc_fetch in its DMA mode and
+                        // the core's TIDX / TDATA window stay for the WS2812B driver (its pixels and
+                        // its frames from the PSRAM)
 
 module tt_um_pettit_lisa
 (
@@ -380,7 +385,11 @@ module tt_um_pettit_lisa
    wire                 psram_mod;           // 0x1c bit 10: the TT QSPI Pmod's uio[7:4] (lisa_io_mux.v)
    wire [1:0]           clk_div;             // Clock division factor control (00: /2, 01: /4, 10: /8, 11: /16)
    wire                 io_busy;
+`ifdef WANT_TTLC
    reg                  io_busy_r;
+`else
+   wire                 io_busy_r = 1'b0;
+`endif
    wire [7:0]           ttlc_to_lisa;
    wire [7:0]           lisa_to_ttlc;
    wire                 ttlc_int;
@@ -397,7 +406,16 @@ module tt_um_pettit_lisa
    wire                 ttlcio_we;
    wire [7:0]           ttlcio_rdata;
    wire                 ttlc_lisa_start;     // a scan the core started (TCTRL START)
+`ifdef WANT_TTLC
    reg                  ttlc_scan_pend;
+`else
+   wire                 ttlc_scan_pend = 1'b0;
+`endif
+   wire                 ttlc_fetch_en;       // the TTLC fetch runs: the ICU not halted, or the driver's DMA
+   wire [13:0]          dbg_ttlc_pc;         // what the debugger sees of the ICU (0 without it)
+   wire                 dbg_ttlc_exec;
+   wire                 dbg_ttlc_i_ready;
+   wire                 dbg_ttlc_data_in;
 
    // ==========================================================================
    // Processor Instruction RAM bus
@@ -977,13 +995,13 @@ module tt_um_pettit_lisa
       .clk_div                   ( clk_div                   ),
 
       // TTLC Debug signals
-      .ttlc_pc                   ( mc14500_pc                ),
-      .ttlc_exec                 ( ttlc_exec                 ),
+      .ttlc_pc                   ( dbg_ttlc_pc               ),
+      .ttlc_exec                 ( dbg_ttlc_exec             ),
       .ttlc_halt                 ( ttlc_halt                 ),
       .ttlc_reset                ( ttlc_reset                ),
       .ttlc_shiftclk             ( ttlc_shiftclk             ),
-      .ttlc_i_ready              ( ttlc_i_ready              ),
-      .ttlc_data_in              ( DATA                      ),
+      .ttlc_i_ready              ( dbg_ttlc_i_ready          ),
+      .ttlc_data_in              ( dbg_ttlc_data_in          ),
       .ttlc_data_out             ( DATA_OUT                  ),
       .ttlc_result_reg           ( RR                        )
    );
@@ -994,9 +1012,13 @@ module tt_um_pettit_lisa
    // the TTLC's fetch, or the WS2812B driver's DMA (RESPIN 35): its buffer
    // is a data address (BASE x 256 + the group's offset, an add: a frame
    // passes 256 bytes) on the data cache's base and select
+`ifdef WANT_TTLC
    assign ttlc_addr      = ws_dma_fetch ?
                            ({lisa2_base_addr, 8'h0} | ({ws_base, 8'h0} + {9'h0, ttlc_fetch_word, 1'b0})) :
                            ({ttlc_base_addr, 8'h0} | {9'h0, ttlc_fetch_word, 1'b0});
+`else
+   assign ttlc_addr      = {lisa2_base_addr, 8'h0} | ({ws_base, 8'h0} + {9'h0, ttlc_fetch_word, 1'b0});
+`endif
    assign data_cache_flush = dbg_cache_flush | ws_flush_req;
    assign baud_div       = ui_in[6:0];
    assign baud_set       = ui_in[7];
@@ -1131,6 +1153,7 @@ module tt_um_pettit_lisa
    // The TTLC's PC and stack are in ttlc_fetch; io_busy_r holds the core a
    // clock after a scan
    // ==========================================================================
+`ifdef WANT_TTLC
    always @(posedge clk)
    begin
       if (~rst_n)
@@ -1174,6 +1197,37 @@ module tt_um_pettit_lisa
       .FLAG_F                    ( FLAG_F                    )
    );
 
+   // The core takes the presented slot when nothing holds it: an I/O scan
+   // (and the clock after), the debugger, or the scan a nopo just started
+   assign mc14500_run  = ttlc_i_ready && !io_busy && !io_busy_r && !ttlc_halt && !FLAG_O && !ttlc_scan_pend &&
+                         !ws_dma_fetch;
+
+
+   assign ttlc_fetch_en    = ws_dma_fetch || !ttlc_halt;
+   assign dbg_ttlc_pc      = mc14500_pc;
+   assign dbg_ttlc_exec    = ttlc_exec;
+   assign dbg_ttlc_i_ready = ttlc_i_ready;
+   assign dbg_ttlc_data_in = DATA;
+`else
+   // No TTLC (GF180.md): no ICU, no scan chains, no interlock; the fetch is
+   // the WS2812B driver's DMA engine only, the I/O block below holds its
+   // pixels (the core writes bytes 0-5 through TIDX / TDATA), and what the
+   // debugger's 0x40 / 0x41 would show of the ICU reads 0
+   assign ttlc_scan_req    = 1'b0;
+   assign {DATA_OUT, WRITE, RR, JMP, RTN, FLAG_O, FLAG_F} = 7'h0;
+   assign mc14500_run      = 1'b0;
+   assign ttlc_fetch_en    = ws_dma_fetch;
+   assign dbg_ttlc_pc      = 14'h0;
+   assign dbg_ttlc_exec    = 1'b0;
+   assign dbg_ttlc_i_ready = 1'b0;
+   assign dbg_ttlc_data_in = 1'b0;
+   assign io_busy          = 1'b0;
+   assign input_pins       = 48'h0;
+   assign ttlc_out_data    = 3'h0;
+   assign ttlc_io_latch    = 1'b0;
+   assign ttlc_io_shiftclk = 1'b0;
+`endif
+
    // ==========================================================================
    // Instantiate the INST CACHE controller
    // ==========================================================================
@@ -1181,7 +1235,7 @@ module tt_um_pettit_lisa
    (
       .clk                       ( clk                       ),
       .rst_n                     ( rst_n_r[2]                ),
-      .fetch_en                  ( ws_dma_fetch || !ttlc_halt ),
+      .fetch_en                  ( ttlc_fetch_en             ),
       .run                       ( mc14500_run               ),
       .jmp                       ( JMP                       ),
       .rtn                       ( RTN                       ),
@@ -1210,11 +1264,6 @@ module tt_um_pettit_lisa
       .fetch_idle                ( ws_fetch_idle             )
    );
 
-   // The core takes the presented slot when nothing holds it: an I/O scan
-   // (and the clock after), the debugger, or the scan a nopo just started
-   assign mc14500_run  = ttlc_i_ready && !io_busy && !io_busy_r && !ttlc_halt && !FLAG_O && !ttlc_scan_pend &&
-                         !ws_dma_fetch;
-
    // ==========================================================================
    // I/O for the MC14500B
    // ==========================================================================
@@ -1242,8 +1291,13 @@ module tt_um_pettit_lisa
    assign mem_write = WRITE;
    assign data_in   = DATA_OUT;
    assign DATA      = data_out;
+`ifdef WANT_TTLC
    assign address   = {4'h0, ttlc_inst[11:4]};   // the slot's 8-bit I/O address
+`else
+   assign address   = 12'h0;
+`endif
 
+`ifdef WANT_TTLC
    // ==========================================================================
    // Instantiate the I/O shift register management module
    // ==========================================================================
@@ -1266,6 +1320,7 @@ module tt_um_pettit_lisa
    // starts (RESPIN 30) runs even then - the core holds the claim itself
    // and lisa_ttlcio waits for the SPI byte to end
    assign ttlc_io_start = (ttlc_scan_req & !spi_owned) | ttlc_lisa_start;
+`endif
 
 endmodule // tt_um_pettit_lisa
 

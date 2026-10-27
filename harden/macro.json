@@ -1,16 +1,17 @@
 {
-  "//": "The RAM32 DFFRAM macro (macros/: DFFRAM.librelane models/ram_ao on gf180mcuD - the AND-OR read path, latches, no decap rows, 675.92 x 168.56 um; GF180.md) instead of the synthesized src/RAM32.v, on the core's bottom row at the right: x 1090.60 (= 2.24 + 28 x 38.87; 740.77 was the 4x4's) puts its 17 VPWR / VGND stripe columns (its first VPWR centre 17.44 um from its origin, then every 38.87) on the tile's Metal4 stripes (the first at core x 3.36 + 16.32, pitch 38.87), its right edge 1766.52 um, 35 um (62 sites) short of the 5x4 core's 1801.52; y 3.92, the first row.  The macro's pins: Di0 north (Metal2), Do0 west, the controls east (Metal3), as the sky130 chip's.  The tile's stripes are run over the macro's power pins by flow.py's Tile.ExtendPowerStripes (odb_stripes.py) after pdn_macro.tcl; src/RAM32.v stays a model for lint (EXTRA_VERILOG_MODELS).",
+  "//": "The RAM32 DFFRAM macro (macros/: DFFRAM.librelane models/ram_ao on gf180mcuD - the AND-OR read path, latches, no decap rows, 675.92 x 168.56 um; GF180.md) instead of the synthesized src/RAM32.v, on the core's bottom row at the right: x 740.77 (= 2.24 + 19 x 38.87) puts its 17 VPWR / VGND stripe columns (its first VPWR centre 17.44 um from its origin, then every 38.87) on the tile's Metal4 stripes (the first at core x 3.36 + 16.32, pitch 38.87), its right edge 1416.69 um, 20 um (36 sites) short of the core's 1436.96; y 3.92, the first row.  The macro's pins: Di0 north (Metal2), Do0 west, the controls east (Metal3), as the sky130 chip's.  The tile's stripes are run over the macro's power pins by flow.py's Tile.ExtendPowerStripes (odb_stripes.py) after pdn_macro.tcl; src/RAM32.v stays a model for lint (EXTRA_VERILOG_MODELS).",
   "REMOVE_SOURCES": [
     "RAM32.v"
   ],
-  "//": "PL_TARGET_DENSITY_PCT: on the 4x4 the design placed at 77% utilization (692K um2 of cells after the flow's buffers) with 24632 of global-route overflow and the detailed router at 33.7K violations after three iterations (gf1, stopped; the sky130 rc23: 830 and under 1000 by the tenth); on the 5x4 the cells are about 58% of the core beside the macro, so 65 to start, no padding (the sky130 chip placed at 85 with GPL_CELL_PADDING 2, its own trials).",
-  "PL_TARGET_DENSITY_PCT": 65,
+  "//": "GPL_CELL_PADDING 2 and PL_TARGET_DENSITY_PCT 84 (the sky130 chip's recipe: 2 and 85): a site each side of every cell in global placement - GF180's cells average 6.9 um here, so +16% - reserves the room the flow's buffers, CTS and hold fixes take afterwards, which otherwise packed bins past 90% where the detailed router stalled.  The target is the padded utilization plus slack: without the TTLC the core logic is 452K um2 synthesized (575.4K less the RAM32's flops), about 642K placed (gf1 grew 1.42x), 69% of the 929K beside the macro, 80% padded.  gf1, the 4x4 with the TTLC at 85 unpadded: 77% utilization, global-route overflow 24632, the detailed router at 33.7K violations after three iterations (stopped).",
+  "GPL_CELL_PADDING": 2,
+  "PL_TARGET_DENSITY_PCT": 84,
   "//": "The antenna repair's iterations as the sky130 chip's rc22+ (3 left a met3 net at 1.02 there).",
   "GRT_ANTENNA_REPAIR_ITERS": 5,
   "DRT_ANTENNA_REPAIR_ITERS": 5,
   "FP_MACRO_HORIZONTAL_HALO": 2,
   "FP_MACRO_VERTICAL_HALO": 1,
-  "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the stubs between the macro and the core's right edge (62 sites on the 5x4) stay.",
+  "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the 36-site stubs between the macro and the core's right edge stay.",
   "FP_PRUNE_THRESHOLD": 11,
   "ERROR_ON_PDN_VIOLATIONS": false,
   "//": "PDN_CFG: LibreLane's PDN plus a Metal4 stripe (with pdngen's vias to the rails) on each macro power pin column that is not on a tile stripe (none, on the stripe grid); Tile.ExtendPowerStripes then runs the columns over the macro.",

@@ -8,35 +8,17 @@ SDCC      ?= ../../../lisa-tools/sdcc-lisa/build/bin/sdcc
 SDCC_TEST ?= ../../../lisa-tools/sdcc_test
 CFLAGS    ?= -mlisa --rev3 --debug -I$(SDCC_TEST)
 
-PROGS = hello alu2 reti div16 cache14 dbg swap bank uartov spi ttlcio timer3 ws2812 wsdma i2c misc36
+PROGS = hello alu2 reti div16 cache14 dbg swap bank uartov spi timer3 ws2812 wsdma i2c misc36
 
-all: $(PROGS:%=%.hex) ttlc_test.hex ttlc_jump_test.hex ttlc_storage_test.hex bank_test.hex spi_test.hex ttlcio_test.hex
+all: $(PROGS:%=%.hex) bank_test.hex spi_test.hex
 
-# the TTLC programs (ttlc/*.asm, assembled by ttlc/mc14500_as.py into the
-# slot format of ttlc_fetch.v) at byte 0x10000 of the flash, behind hello:
-# the TTLC base register 0x1f = 0x100.  ttlc_loopback copies the 48 inputs
-# to the 48 outputs every scan; ttlc_jump does it through jmp / rtn / skz
-ttlc/%.hex: ttlc/%.asm ttlc/mc14500_as.py
-	cd ttlc && python3 mc14500_as.py --quiet $(notdir $<)
+# (the sky130 chip's TTLC programs, ttlc/, are not here: no TTLC on the GF180 chip)
 
-ttlc_test.hex: hello.hex ttlc/ttlc_loopback.hex ../hexcat.py
-	python3 ../hexcat.py $@ 0 hello.hex 10000 ttlc/ttlc_loopback.hex
+# spi_test.hex: the committed image carries the sky130 chip's TTLC loopback at
+# 0x10000 behind spi.hex (unused here); rebuilt it is spi.hex alone
+spi_test.hex: spi.hex
+	cp $< $@
 
-ttlc_jump_test.hex: hello.hex ttlc/ttlc_jump.hex ../hexcat.py
-	python3 ../hexcat.py $@ 0 hello.hex 10000 ttlc/ttlc_jump.hex
-
-# the loopback through the 64-bit storage (RESPIN 31): both storage ranges
-ttlc_storage_test.hex: hello.hex ttlc/ttlc_storage.hex ../hexcat.py
-	python3 ../hexcat.py $@ 0 hello.hex 10000 ttlc/ttlc_storage.hex
-
-# the SPI master's test (RESPIN 29): spi.c, with the loopback for its run
-# on the TTLC's pins
-spi_test.hex: spi.hex ttlc/ttlc_loopback.hex ../hexcat.py
-	python3 ../hexcat.py $@ 0 spi.hex 10000 ttlc/ttlc_loopback.hex
-
-# the TTLC's I/O from the core (RESPIN 30): ttlcio.c, with the loopback
-ttlcio_test.hex: ttlcio.hex ttlc/ttlc_loopback.hex ../hexcat.py
-	python3 ../hexcat.py $@ 0 ttlcio.hex 10000 ttlc/ttlc_loopback.hex
 
 %.ihx: %.c $(SDCC_TEST)/harness.h
 	$(SDCC) $(CFLAGS) -o $@ $<

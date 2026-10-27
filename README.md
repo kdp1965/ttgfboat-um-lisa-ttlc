@@ -1,11 +1,12 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg)
 
-## LISA (Little ISA) 8-bit microcontroller SoC with TTLC, on GF180
+## LISA (Little ISA) 8-bit microcontroller SoC on GF180
 
 The third LISA chip ([ttsky26d-um-lisa-ttlc](https://github.com/kdp1965/ttsky26d-um-lisa-ttlc),
 rc30) ported to GF180 for the Tiny Tapeout "Best Of All Time" shuttle:
-the same RTL without the BF16 unit, hardened on gf180mcuD (the 7-track
-library at 3.3 V) on a 4x4 tile.  What the port changed, the area
+the same RTL without the BF16 unit and the TTLC (GF180's cells are three
+times sky130's, and the whole design did not fit the 4x4 tile, the largest
+there is), hardened on gf180mcuD (the 7-track library at 3.3 V).  What the port changed, the area
 arithmetic that dropped BF16, the GF180 RAM32 macro and the hardening are
 in [GF180.md](GF180.md); the design's history - the TT07 silicon's issues
 and the second and third chips' fixes and extensions - is
@@ -17,7 +18,7 @@ LISA is a microcontroller built around a custom 8-bit accumulator core
    - a debug interface on a UART (auto-detected port and baud rate): registers,
      halt / resume / breakpoints, RAM access, (Q)SPI flash erase and program
    - a (Q)SPI arbiter with four channels: debugger, LISA instruction fetch,
-     LISA data (through the data cache), TTLC instruction fetch; two chip
+     LISA data (through the data cache), the WS2812B driver's DMA; two chip
      enables, each SPI or QSPI, flash or RAM, 16- or 24-bit addresses,
      programmable SCLK divider, CE delay, dummy cycles and base addresses;
      DDR (EDh) instruction reads from a DTR flash as an option
@@ -31,9 +32,9 @@ LISA is a microcontroller built around a custom 8-bit accumulator core
      DMA, a cycle counter, a watchdog
    - 8x8 multiplier, 16/16 divider (the sky130 chips' BF16 unit is not on
      this one: GF180.md)
-   - TTLC, a Tiny Tapeout Logic Controller: an MC14500B-compatible industrial
-     control unit with 48 inputs and 48 outputs on external 74HC595 / 74HC165
-     chains, a 64-bit store and 8 bits each way to LISA
+   - (the sky130 chips' TTLC, the MC14500B-compatible logic controller with
+     its 74HC595 / 74HC165 chains, is not on this one: GF180.md; its I/O
+     block's output bytes 0-5 remain as the WS2812B driver's pixel store)
    - an I/O mux for the pinout
 
 The datasheet text is [docs/info.md](docs/info.md); the instruction set is

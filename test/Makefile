@@ -31,7 +31,7 @@ PROJECT_SOURCES += lisa_qqspi.v lisa_qspi_controller.v lisa_rx8n.v lisa_tx8n.v l
 PROJECT_SOURCES += debug_ctrl.v debug_autobaud.v debug_brg.v debug_regs.v
 PROJECT_SOURCES += data_cache8.v inst_stream.v
 PROJECT_SOURCES += i2c_master_byte_ctrl.v i2c_master_bit_ctrl.v lisa_uart.v
-PROJECT_SOURCES += mc14500b.v ttlc_io.v ttlc_fetch.v shift_reg_io.v
+PROJECT_SOURCES += ttlc_io.v ttlc_fetch.v
 
 ifneq ($(GATES),yes)
 
@@ -81,7 +81,6 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 MODULE = test
 
-# make TTLC=1: the TTLC loopback through the testbench's I/O chains
 # make BANK=1: the bank registers (progs/bank.c)
 # make OVERRUN=1: the UART receive FIFO's overrun flag (progs/uartov.c)
 # A program from the SDCC test suite (or any Intel HEX / @addr / opcode-per-line
@@ -96,14 +95,9 @@ else ifneq ($(BANK),)
 PLUSARGS += +FIRMWARE=$(PWD)/progs/bank_test.hex +PROGRAM=bank_test.hex +BANK
 else ifneq ($(SPIM),)
 # the SPI master (RESPIN 29): progs/spi.c against the testbench's two
-# devices on the mux-2 pins, then on the TTLC's pins with the TTLC
-# running its loopback (progs/spi_test.hex: spi at 0, the loopback at 0x10000)
+# devices on the mux-2 pins (progs/spi_test.hex: spi at 0; the TTLC loopback
+# behind it at 0x10000 is for the sky130 chip's test on the TTLC's pins)
 PLUSARGS += +FIRMWARE=$(PWD)/progs/spi_test.hex +PROGRAM=spi_test.hex +SPIM
-else ifneq ($(TTLCIO),)
-# the TTLC's I/O from the core (RESPIN 30): progs/ttlcio.c with the ICU
-# halted (the chains are the core's), then with the ICU running its
-# loopback (progs/ttlcio_test.hex: ttlcio at 0, the loopback at 0x10000)
-PLUSARGS += +FIRMWARE=$(PWD)/progs/ttlcio_test.hex +PROGRAM=ttlcio_test.hex +TTLCIO
 else ifneq ($(TIMER3),)
 # Timer 3 (RESPIN 32): progs/timer3.c - the plain timer, compare, the
 # captures of tb.v's square wave, the vector-9 interrupt, PWM on uo[1] / uo[2]
@@ -130,17 +124,6 @@ else ifneq ($(WSDMA),)
 # the WS2812B driver's DMA (RESPIN 35): progs/wsdma.c - frames from the
 # PSRAM through the TTLC's fetch on uo[1] / uo[2], the cache on
 PLUSARGS += +FIRMWARE=$(PWD)/progs/wsdma.hex +PROGRAM=wsdma.hex +WSDMA
-else ifneq ($(TTLC),)
-# TTLC_IMAGE=<hex>: another flash image (the TTLC program at byte 0x10000);
-# TTLCTRACE=<clocks> logs the TTLC's fetch (SIM=icarus)
-TTLC_IMAGE ?= $(PWD)/progs/ttlc_test.hex
-PLUSARGS += +FIRMWARE=$(TTLC_IMAGE) +PROGRAM=$(notdir $(TTLC_IMAGE)) +TTLC
-ifneq ($(TTLCTRACE),)
-PLUSARGS += +TTLCTRACE=$(TTLCTRACE)
-endif
-ifneq ($(TTLCIN),)
-PLUSARGS += +TTLCIN=$(TTLCIN)
-endif
 else
 PLUSARGS += +FIRMWARE=$(PWD)/progs/hello.hex +PROGRAM=hello.hex +DEFAULT
 endif

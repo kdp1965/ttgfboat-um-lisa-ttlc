@@ -9,16 +9,12 @@ icarus otherwise or with `make SIM=icarus` (what CI runs).
 `tb.v` wires `tt_um_pettit_lisa` to a SPI flash model (`spiflash.v`, the image from
 `+FIRMWARE=<hex>`), a QSPI RAM model on CE1 (`psram.v`), a UART on the
 debug port with a fixed baud divider, and the TTLC's three 74HC595 and three
-74HC165 chains (`ttlc_chains`). `lisa.py` is the debugger over that UART:
+74HC165 chains (`ttlc_chains`; unused on the GF180 chip, which has no TTLC). `lisa.py` is the debugger over that UART:
 the `rXX` / `wXXYYYY` / `v` / `t` / `l` protocol, the Commander's register
 setup (`setup()`), `run()` of a program with its console text.
 
 ```sh
 make                          # test_autobaud (the debug UART trained at six bit periods), test_debugger, test_bringup (progs/hello.hex), test_uart_burst
-make TTLC=1                   # the TTLC loopback through the chains, its breakpoints and step
-make TTLC=1 TTLC_IMAGE=$PWD/progs/ttlc_jump_test.hex   # the loopback through jmp / rtn / skz / nopf
-make TTLC=1 TTLC_IMAGE=$PWD/progs/ttlc_storage_test.hex   # the loopback through both storage ranges (RESPIN 31)
-make SIM=icarus TTLC=1 TTLCTRACE=6000 TESTCASE=test_ttlc_trace [TTLCIN=0x3]   # log the TTLC's fetch per clock
 make BANK=1                   # the bank registers (RESPIN 22, the data map of 28): progs/bank.c with routines in banks 1-3, the cache on
 make OVERRUN=1                # the UART receive FIFO's overrun flag (RESPIN 14): progs/uartov.c
 make SPIM=1                   # the SPI master (RESPIN 29): progs/spi.c against tb.v's two SPI
@@ -38,9 +34,6 @@ make WSDMA=1                  # the WS2812B DMA (RESPIN 35): progs/wsdma.c - fra
                               # uo[2], the cache flushed, thrashed meanwhile, REPEAT; tb.v's receivers check them
 make TIMER3=1                 # Timer 3 (RESPIN 32): progs/timer3.c - the timer, captures of tb.v's
                               # square wave, the vector-9 interrupt, PWM duty measured on uo[1] / uo[2]
-make TTLCIO=1                 # the TTLC's I/O from the core (RESPIN 30): progs/ttlcio.c with the ICU
-                              # halted (the chains are the core's), then running its loopback
-                              # (watching it, holding it with the claim, a scan of the core's own)
 make IHX=../../lisa-tools/sdcc_test/test_core.ihx [CACHE=1] [TIMEOUT=clocks]
 make SPI_TCO=24 SPI_REG=0x6010  # any of these with the flash's and PSRAM's data 24 ns late into the
                               # chip and 0x1E's late read capture on (RESPIN 34); SPI_DOUT_DLY=<ns>:
@@ -99,10 +92,7 @@ ILAT=1                                     # one clock of fetch latency instead 
 The probe programs, each for an item of `RESPIN.md`: `hello` (the
 bring-up image), `alu2` (the ALU flags against the compiler's arithmetic),
 `reti`, `div16`, `cache14`, `swap`, `dbg` (a loop for the debugger tests),
-`irq3` (test_irq with its check 3 values printed), and `ttlc/` (the TTLC
-programs: the loopback and the jump test, assembled by `ttlc/mc14500_as.py`
-into the slot format of `ttlc_fetch.v` - 12-bit instructions, four to
-three words, RESPIN.md item 19). `make` there rebuilds them with `sdcc -mlisa --rev2` from
+`irq3` (test_irq with its check 3 values printed). `make` there rebuilds them with `sdcc -mlisa --rev2` from
 lisa-tools (the second chip's stack convention, SP at the top byte, since
 2026-10-17: a TT07 build's frames are one byte off on this RTL); the `.hex`
 images are committed so the testbenches run without it.
