@@ -1,0 +1,551 @@
+`default_nettype wire
+/*
+ *  SPDX-FileCopyrightText: 2017 Clifford Wolf
+ *
+ *  PicoSoC - A simple example SoC using PicoRV32
+ *
+ *  Copyright (C) 2017  Clifford Wolf <clifford@clifford.at>
+ *
+ *  Permission to use, copy, modify, and/or distribute this software for any
+ *  purpose with or without fee is hereby granted, provided that the above
+ *  copyright notice and this permission notice appear in all copies.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ *  SPDX-License-Identifier: ISC
+ */
+
+`timescale 1 ns / 1 ps
+
+//
+// Simple SPI flash simulation model
+//
+// This model samples io input signals 1ns before the SPI clock edge and
+// updates output signals 1ns after the SPI clock edge.
+//
+// Supported commands:
+//    AB, B9, FF, 03, BB, EB, ED
+//
+// Well written SPI flash data sheets:
+//    Cypress S25FL064L http://www.cypress.com/file/316661/download
+//    Cypress S25FL128L http://www.cypress.com/file/316171/download
+//
+
+module spiflash #(
+    parameter FILENAME = "firmware/firmware.hex"
+) (
+    input csb,
+    input clk,
+    inout io0,  // MOSI
+    inout io1,  // MISO
+    inout io2,
+    inout io3
+);
+  localparam verbose = 0;
+  localparam integer latency = 4;  // TODO changed to match KianV
+
+  reg [7:0] buffer;
+  reg [3:0] reset_count = 0;
+  reg [3:0] reset_monitor = 0;
+  integer bitcount = 0;
+  integer bytecount = 0;
+  integer dummycount = 0;
+
+  reg [7:0] spi_cmd;
+  reg [7:0] xip_cmd = 0;
+  reg [23:0] spi_addr;
+
+  reg [7:0] spi_in;
+  reg [7:0] spi_out;
+  reg spi_io_vld;
+
+  reg powered_up = 1;  // TODO workaround for KianV not sending power up (0xab) command
+  reg wren = 0;
+  reg busy = 0;
+  integer busycount = 0;
+
+  localparam [3:0] mode_spi = 1;
+  localparam [3:0] mode_dspi_rd = 2;
+  localparam [3:0] mode_dspi_wr = 3;
+  localparam [3:0] mode_qspi_rd = 4;
+  localparam [3:0] mode_qspi_wr = 5;
+  localparam [3:0] mode_qspi_ddr_rd = 6;
+  localparam [3:0] mode_qspi_ddr_wr = 7;
+
+  reg [3:0] mode = 0;
+  reg [3:0] next_mode = 0;
+
+  // EDh (RESPIN 37, the dtr_* blocks below)
+  reg         dtr_arm = 0;    // the instruction was EDh
+  reg         dtr_go = 0;     // ... its falling edge is past
+  integer     dtr_n = 0;      // address and mode nibbles in
+  integer     dtr_dummy = 0;  // dummy clocks counted
+  reg         dtr_out = 0;    // driving data
+  reg  [31:0] dtr_ad = 0;
+  reg  [7:0]  dtr_byte = 0;
+  reg         dtr_hi = 0;     // the next nibble out is the high one
+  integer     DTR_DUMMY = 7;
+  integer     DTR_LAUNCH = 0;
+
+  reg io0_oe = 0;
+  reg io1_oe = 0;
+  reg io2_oe = 0;
+  reg io3_oe = 0;
+
+  reg io0_dout = 0;
+  reg io1_dout = 0;
+  reg io2_dout = 0;
+  reg io3_dout = 0;
+
+`ifdef VERILATOR
+  // no delays on the tristate drivers under Verilator (its tristate support does
+  // not take them); sampling 1 ns before and driving 1 ns after the edge does
+  // not matter at the simulated clock rates
+  `define SPIDLY
+`else
+  `define SPIDLY #1
+`endif
+  assign `SPIDLY io0 = io0_oe ? io0_dout : 1'bz;
+  assign `SPIDLY io1 = io1_oe ? (io1_dout == 1'b1 ? 1'bz : 1'b0) : 1'bz;
+  assign `SPIDLY io2 = io2_oe ? io2_dout : 1'bz;
+  assign `SPIDLY io3 = io3_oe ? io3_dout : 1'bz;
+
+  wire io0_delayed;
+  wire io1_delayed;
+  wire io2_delayed;
+  wire io3_delayed;
+
+  assign `SPIDLY io0_delayed = io0;
+  assign `SPIDLY io1_delayed = io1;
+  assign `SPIDLY io2_delayed = io2;
+  assign `SPIDLY io3_delayed = io3;
+
+  // 128 KB: the whole 32K-word instruction space
+  localparam flash_size = 4*1024*1024;      // the 128 code banks (RESPIN 22, REV3.md): 4 MB
+
+  // 16 MB (128Mb) Flash
+  //reg [7:0] memory[0:16*1024*1024-1];
+  reg [7:0] memory[0:flash_size-1];
+
+  // The image: +FIRMWARE=<file> (readmemh format: @byteaddr then hex bytes),
+  // else the FILENAME parameter
+  reg [8*256-1:0] fname;
+  integer k;
+  initial begin
+    for (k = 0; k < flash_size; k = k + 1)
+      memory[k] = 8'hFF;
+    if (!$value$plusargs("FIRMWARE=%s", fname))
+      fname = FILENAME;
+    $display("spiflash: reading %0s", fname);
+    $readmemh(fname, memory);
+    $display("spiflash: first bytes 0x%02x 0x%02x 0x%02x 0x%02x", memory[0],
+             memory[1], memory[2], memory[3]);
+  end
+
+  task spi_action;
+    begin
+      spi_in = buffer;
+
+      if (bytecount == 1) begin
+        spi_cmd = buffer;
+
+        if (spi_cmd == 8'h06) wren = 1;
+
+        if (spi_cmd == 8'h05)
+        begin
+          buffer = {6'h0, wren, busy};
+          if (busycount > 0)
+             busycount = busycount - 1;
+          else
+             busy = 0;
+        end
+
+        if (spi_cmd == 8'hab) powered_up = 1;
+
+        if (spi_cmd == 8'hb9) powered_up = 0;
+
+        if (spi_cmd == 8'hff) xip_cmd = 0;
+      end
+
+      if (powered_up && spi_cmd == 'h03) begin
+        if (bytecount == 2) spi_addr[23:16] = buffer;
+
+        if (bytecount == 3) spi_addr[15:8] = buffer;
+
+        if (bytecount == 4) spi_addr[7:0] = buffer;
+
+        if (bytecount >= 4) begin
+          buffer   = memory[spi_addr];
+          spi_addr = spi_addr + 1;
+        end
+      end
+
+      if (powered_up && spi_cmd == 'hbb) begin
+        if (bytecount == 1) mode = mode_dspi_rd;
+
+        if (bytecount == 2) spi_addr[23:16] = buffer;
+
+        if (bytecount == 3) spi_addr[15:8] = buffer;
+
+        if (bytecount == 4) spi_addr[7:0] = buffer;
+
+        if (bytecount == 5) begin
+          xip_cmd = (buffer == 8'ha5) ? spi_cmd : 8'h00;
+          mode = mode_dspi_wr;
+          dummycount = latency;
+        end
+
+        if (bytecount >= 5) begin
+          buffer   = memory[spi_addr];
+          spi_addr = spi_addr + 1;
+        end
+      end
+
+      if (powered_up && spi_cmd == 'heb) begin
+        if (bytecount == 1) mode = mode_qspi_rd;
+
+        if (bytecount == 2) spi_addr[23:16] = buffer;
+
+        if (bytecount == 3) spi_addr[15:8] = buffer;
+
+        if (bytecount == 4) spi_addr[7:0] = buffer;
+
+        if (bytecount == 5) begin
+          xip_cmd = (buffer == 8'ha5) ? spi_cmd : 8'h00;
+          mode = mode_qspi_wr;
+          dummycount = latency;
+        end
+
+        if (bytecount >= 5) begin
+          buffer   = memory[spi_addr];
+          spi_addr = spi_addr + 1;
+        end
+      end
+
+      // EDh as the W25Q128JV-DTR does it (RESPIN 37): the dtr_* blocks below
+      if (powered_up && spi_cmd == 'hed && bytecount == 1) begin
+        mode    = 0;
+        dtr_arm = 1;
+        {io3_oe, io2_oe, io1_oe, io0_oe} = 4'h0;   // the instruction's MISO off
+      end
+
+      if (powered_up && spi_cmd == 'hd8) begin
+        if (bytecount == 2) spi_addr[23:16] = buffer;
+
+        if (bytecount == 3) spi_addr[15:8] = buffer;
+
+        if (bytecount == 4) spi_addr[7:0] = buffer;
+
+        if (bytecount >= 4) begin
+          integer count;
+
+          if (wren)
+          begin
+            for (count = 0; count < 4096; count = count + 1)
+               if (spi_addr + count < flash_size)
+                  memory[spi_addr+count] = 8'hFF;
+            busycount = 4;
+            $display("FLASH Erased\n");
+          end
+        end
+      end
+
+      if (powered_up && spi_cmd == 'h02) begin
+        if (bytecount == 2) spi_addr[23:16] = buffer;
+
+        if (bytecount == 3) spi_addr[15:8] = buffer;
+
+        if (bytecount == 4) spi_addr[7:0] = buffer;
+
+        if (bytecount > 4) begin
+          if (wren)
+          begin
+            if (spi_addr + bytecount-5 < flash_size)
+                memory[spi_addr+bytecount-5] = buffer;
+            busycount = 0;
+            $display("FLASH write 0x%04X=0x%02X", spi_addr+bytecount-5, buffer);
+          end
+        end
+      end
+
+      spi_out = buffer;
+      spi_io_vld = 1;
+
+      if (verbose) begin
+        if (bytecount == 1) $write("<SPI-START>");
+        $write("<SPI:%02x:%02x>", spi_in, spi_out);
+      end
+
+    end
+  endtask
+
+  task ddr_rd_edge;
+    begin
+      buffer   = {buffer, io3_delayed, io2_delayed, io1_delayed, io0_delayed};
+      bitcount = bitcount + 4;
+      if (bitcount == 8) begin
+        bitcount  = 0;
+        bytecount = bytecount + 1;
+        spi_action;
+      end
+    end
+  endtask
+
+  task ddr_wr_edge;
+    begin
+      io0_oe   = 1;
+      io1_oe   = 1;
+      io2_oe   = 1;
+      io3_oe   = 1;
+
+      io0_dout = buffer[4];
+      io1_dout = buffer[5];
+      io2_dout = buffer[6];
+      io3_dout = buffer[7];
+
+      buffer   = {buffer, 4'h0};
+      bitcount = bitcount + 4;
+      if (bitcount == 8) begin
+        bitcount  = 0;
+        bytecount = bytecount + 1;
+        spi_action;
+      end
+    end
+  endtask
+
+  // ==========================================================================
+  // DTR Fast Read Quad I/O (EDh), the W25Q128JV-DTR's (its Figure 27a, RESPIN
+  // 37): after the instruction's last rising edge, the falling edge is
+  // ignored; the address and the mode byte come in a nibble on each edge from
+  // the next rising one (4 clocks), then DTR_DUMMY dummy clocks (7), then the
+  // data goes out a nibble on each edge, high nibble first, from the falling
+  // edge of the last dummy clock (+DTR_LAUNCH=1: the rising edge after it).
+  // ==========================================================================
+  initial begin
+    if (!$value$plusargs("DTR_DUMMY=%d", DTR_DUMMY)) DTR_DUMMY = 7;
+    if (!$value$plusargs("DTR_LAUNCH=%d", DTR_LAUNCH)) DTR_LAUNCH = 0;
+  end
+
+  task dtr_drive;
+    begin
+      if (dtr_hi) begin
+        dtr_byte = memory[spi_addr[21:0]];
+        spi_addr = spi_addr + 1;
+      end
+      {io3_dout, io2_dout, io1_dout, io0_dout} = dtr_hi ? dtr_byte[7:4] : dtr_byte[3:0];
+      {io3_oe, io2_oe, io1_oe, io0_oe} = 4'hf;
+      dtr_hi = !dtr_hi;
+    end
+  endtask
+
+  always @(clk) begin
+    if (!csb && dtr_arm) begin
+      if (!dtr_go) begin
+        if (!clk) dtr_go = 1;
+      end else if (dtr_n < 8) begin
+        dtr_ad = {dtr_ad[27:0], io3, io2, io1, io0};
+        dtr_n = dtr_n + 1;
+        if (dtr_n == 8) begin
+          spi_addr = dtr_ad[31:8];
+          dtr_dummy = 0;
+          dtr_hi = 1;
+          if (verbose) $display("spiflash: EDh at %06x mode %02x", dtr_ad[31:8], dtr_ad[7:0]);
+        end
+      end else if (dtr_out) begin
+        dtr_drive;
+      end else if (clk) begin
+        dtr_dummy = dtr_dummy + 1;
+        if (dtr_dummy == DTR_DUMMY + DTR_LAUNCH && DTR_LAUNCH) begin
+          dtr_out = 1;
+          dtr_drive;
+        end
+      end else if (dtr_dummy == DTR_DUMMY && !DTR_LAUNCH) begin
+        dtr_out = 1;
+        dtr_drive;
+      end
+    end
+  end
+
+  always @(csb) begin
+    if (csb) begin
+      dtr_arm = 0;
+      dtr_go = 0;
+      dtr_n = 0;
+      dtr_out = 0;
+      if (verbose) begin
+        $display("");
+        $fflush;
+      end
+      if (spi_cmd == 8'hd8 || spi_cmd == 8'h02)
+         wren = 0;
+      buffer = 0;
+      bitcount = 0;
+      bytecount = 0;
+      mode = mode_spi;
+      io0_oe = 0;
+      io1_oe = 0;
+      io2_oe = 0;
+      io3_oe = 0;
+
+      // Handle MBR.  If in XIP continuous mode, the following
+      // 8 clock cycles are normally not expected to be a command.
+      // If followed by CSB high, however, if the address bits
+      // are consistent with io0 == 1 for 8 clk cycles, then an
+      // MBR has been issued and the system must exit XIP
+      // continuous mode.
+      if (xip_cmd == 8'hbb || xip_cmd == 8'heb || xip_cmd == 8'hed) begin
+        if (reset_count == 4'h8 && reset_monitor == 4'h8) begin
+          xip_cmd = 8'h00;
+          spi_cmd = 8'h03;
+        end
+      end
+    end else if (xip_cmd) begin
+      buffer = xip_cmd;
+      bitcount = 0;
+      bytecount = 1;
+      spi_action;
+    end
+  end
+
+  always @(posedge clk or posedge csb) begin
+    if (csb == 1'b1) begin
+      reset_count   = 0;
+      reset_monitor = 0;
+    end else begin
+      if (reset_count < 4'h9) begin
+        reset_count = reset_count + 1;
+        if (io0_delayed == 1'b1) begin
+          reset_monitor = reset_monitor + 1;
+        end
+      end
+    end
+  end
+
+  always @(csb, clk) begin
+    spi_io_vld = 0;
+    if (!csb && !clk) begin
+      if (dummycount > 0) begin
+        io0_oe = 0;
+        io1_oe = 0;
+        io2_oe = 0;
+        io3_oe = 0;
+      end else
+        case (mode)
+          mode_spi: begin
+            io0_oe   = 0;
+            io1_oe   = 1;
+            io2_oe   = 0;
+            io3_oe   = 0;
+            io1_dout = buffer[7];
+          end
+          mode_dspi_rd: begin
+            io0_oe = 0;
+            io1_oe = 0;
+            io2_oe = 0;
+            io3_oe = 0;
+          end
+          mode_dspi_wr: begin
+            io0_oe   = 1;
+            io1_oe   = 1;
+            io2_oe   = 0;
+            io3_oe   = 0;
+            io0_dout = buffer[6];
+            io1_dout = buffer[7];
+          end
+          mode_qspi_rd: begin
+            io0_oe = 0;
+            io1_oe = 0;
+            io2_oe = 0;
+            io3_oe = 0;
+          end
+          mode_qspi_wr: begin
+            io0_oe   = 1;
+            io1_oe   = 1;
+            io2_oe   = 1;
+            io3_oe   = 1;
+            io0_dout = buffer[4];
+            io1_dout = buffer[5];
+            io2_dout = buffer[6];
+            io3_dout = buffer[7];
+          end
+          mode_qspi_ddr_rd: begin
+            ddr_rd_edge;
+          end
+          mode_qspi_ddr_wr: begin
+            ddr_wr_edge;
+          end
+        endcase
+      if (next_mode) begin
+        case (next_mode)
+          mode_qspi_ddr_rd: begin
+            io0_oe = 0;
+            io1_oe = 0;
+            io2_oe = 0;
+            io3_oe = 0;
+          end
+          mode_qspi_ddr_wr: begin
+            io0_oe   = 1;
+            io1_oe   = 1;
+            io2_oe   = 1;
+            io3_oe   = 1;
+            io0_dout = buffer[4];
+            io1_dout = buffer[5];
+            io2_dout = buffer[6];
+            io3_dout = buffer[7];
+          end
+        endcase
+        mode = next_mode;
+        next_mode = 0;
+      end
+    end
+  end
+
+  always @(posedge clk) begin
+    if (!csb) begin
+      if (dummycount > 0) begin
+        dummycount = dummycount - 1;
+      end else
+        case (mode)
+          mode_spi: begin
+            buffer   = {buffer, io0};
+            bitcount = bitcount + 1;
+            if (bitcount == 8) begin
+              bitcount  = 0;
+              bytecount = bytecount + 1;
+              spi_action;
+            end
+          end
+          mode_dspi_rd, mode_dspi_wr: begin
+            buffer   = {buffer, io1, io0};
+            bitcount = bitcount + 2;
+            if (bitcount == 8) begin
+              bitcount  = 0;
+              bytecount = bytecount + 1;
+              spi_action;
+            end
+          end
+          mode_qspi_rd, mode_qspi_wr: begin
+            buffer   = {buffer, io3, io2, io1, io0};
+            bitcount = bitcount + 4;
+            if (bitcount == 8) begin
+              bitcount  = 0;
+              bytecount = bytecount + 1;
+              spi_action;
+            end
+          end
+          mode_qspi_ddr_rd: begin
+            ddr_rd_edge;
+          end
+          mode_qspi_ddr_wr: begin
+            ddr_wr_edge;
+          end
+        endcase
+    end
+  end
+endmodule

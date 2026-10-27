@@ -1,0 +1,79 @@
+{
+  "//": "The RAM32 DFFRAM macro (macros/, the AND-OR read path built in DFFRAM.librelane models/ram_ao, 320.16 x 116.96) instead of the synthesized src/RAM32.v: on the core's bottom row at the right (x 505.31 = 13 x 38.87, the tile's stripe pitch, so its power pin columns lie on tile stripes; y 2.72, the row grid; its right edge 825.47 + the 2 um halo, short of the core's 853.76 - a pitch more would not fit). On the 4x4 tile until rc17 it was at 349.83, at the right; on the 5x4 tile rc18 had it at 427.57 (two pitches right, 423 um clear at the left for the pixel Calvin), and rc19 (2026-10-24, Ken: the draw at 427.57 did not route well) two more, as far right as it goes, halos 2 x 1 um (the macro keeps its own 2.72 / 1.38 um margins; cut_rows cuts the row overlapping the halo, a touching one survives) and FP_PRUNE_THRESHOLD dropping the 17-site row stubs between the macro and the core edge that pdngen could not power (PDN-0179; RESPIN.md, the halo trial). The tile's stripes are run over its met4 power pins by flow.py's Tile.ExtendPowerStripes, so pdngen's own connectivity check is not the verdict; src/RAM32.v stays as a model for lint (EXTRA_VERILOG_MODELS), the macro's netlist has no power pins",
+  "REMOVE_SOURCES": [
+    "RAM32.v"
+  ],
+  "//": "GPL_CELL_PADDING 2 (a site each side of every cell in global placement, +35% on this design's 2.6 um average cell) reserves the room the flow fills afterwards: the std cells are 60% of the rows after placement and the slew/fanout repair (+16%, 2598 buffers), CTS (+4%) and the 1400 hold buffers (+10%) then took the densest 30 um bins to 92-100%, where the detailed router did not converge (density 85 and 68 alike: 48 and 46 bins over 90%). With the padding the placer's utilization is 81%, so the target density goes back up to 85 (81% of a bin in padded cells is 63% in real ones). TT07 placed at 77 on the 8x2 tile.",
+  "GPL_CELL_PADDING": 2,
+  "PL_TARGET_DENSITY_PCT": 85,
+  "//": "MAX_FANOUT_CONSTRAINT 16 and PL_RESIZER_HOLD_SLACK_MARGIN 0.07 (2026-10-17, the streaming-fetch RTL): with the design 3% bigger than rc1 the padded placement was at its density limit and every draw packed a corner to 90% where the router stalled (12K violations after 12 iterations free, 1 stuck after 56 anchored). Fanout 16 halves the fanout violations (146 -> 35) but gives no area back (repair_design upsizes the drivers instead of buffering); the hold margin does: 0.1 -> 0.07 ns takes 1346 hold buffers to 591 (the flop-to-flop paths sit in a 50-100 ps band of raw hold slack at the fast corner, ~400 buffers per 10 ps), 7.4k um2 of standard cells, and the corners back to rc1's 71-77%; it routed clean in 12 iterations (runs/macro-stream-fo16-hold07: hold ws 0.077 ns at ff against rc1's 0.109, setup +5.5 ns nominal / -7.2 at ss, Magic DRC / LVS / antenna 0). 0.05 ns (191 buffers, hold ws 0.056) routed as well; Ken chose 0.07. Both measured first with TO=OpenROAD.GlobalRouting (trial_fanout16*.json).",
+  "MAX_FANOUT_CONSTRAINT": 16,
+  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.07,
+  "//": "GRT/DRT_ANTENNA_REPAIR_ITERS 5 (default 3; 2026-10-25): rc22 routed clean but left one met3 antenna at ratio 1.02 after the detailed route (rc20 likewise).",
+  "GRT_ANTENNA_REPAIR_ITERS": 5,
+  "DRT_ANTENNA_REPAIR_ITERS": 5,
+  "FP_MACRO_HORIZONTAL_HALO": 2,
+  "FP_MACRO_VERTICAL_HALO": 1,
+  "FP_PRUNE_THRESHOLD": 11,
+  "ERROR_ON_PDN_VIOLATIONS": false,
+  "//": "PDN_CFG: LibreLane's PDN plus a met4 stripe (with pdngen's vias to the rails) on each macro power pin column that is not on a tile stripe; Tile.ExtendPowerStripes then runs the columns over the macro.",
+  "PDN_CFG": "dir::pdn_macro.tcl",
+  "PDN_MACRO_CONNECTIONS": [
+    "ram1 VPWR VGND VPWR VGND"
+  ],
+  "MACROS": {
+    "RAM32": {
+      "instances": {
+        "ram1": {
+          "location": [
+            505.31,
+            2.72
+          ],
+          "orientation": "N"
+        }
+      },
+      "gds": [
+        "dir::../macros/RAM32.gds"
+      ],
+      "lef": [
+        "dir::../macros/RAM32.lef"
+      ],
+      "nl": [
+        "dir::../macros/RAM32.nl.v"
+      ],
+      "spef": {
+        "min_*": [
+          "dir::../macros/RAM32.min_.spef"
+        ],
+        "nom_*": [
+          "dir::../macros/RAM32.nom_.spef"
+        ],
+        "max_*": [
+          "dir::../macros/RAM32.max_.spef"
+        ]
+      },
+      "lib": {
+        "min_tt_025C_1v80": "dir::../macros/RAM32.lib/min_tt_025C_1v80/RAM32__min_tt_025C_1v80.lib",
+        "min_ff_n40C_1v95": "dir::../macros/RAM32.lib/min_ff_n40C_1v95/RAM32__min_ff_n40C_1v95.lib",
+        "max_ff_n40C_1v95": "dir::../macros/RAM32.lib/max_ff_n40C_1v95/RAM32__max_ff_n40C_1v95.lib",
+        "nom_tt_025C_1v80": "dir::../macros/RAM32.lib/nom_tt_025C_1v80/RAM32__nom_tt_025C_1v80.lib",
+        "min_ss_100C_1v60": "dir::../macros/RAM32.lib/min_ss_100C_1v60/RAM32__min_ss_100C_1v60.lib",
+        "max_ss_100C_1v60": "dir::../macros/RAM32.lib/max_ss_100C_1v60/RAM32__max_ss_100C_1v60.lib",
+        "max_tt_025C_1v80": "dir::../macros/RAM32.lib/max_tt_025C_1v80/RAM32__max_tt_025C_1v80.lib",
+        "nom_ss_100C_1v60": "dir::../macros/RAM32.lib/nom_ss_100C_1v60/RAM32__nom_ss_100C_1v60.lib",
+        "nom_ff_n40C_1v95": "dir::../macros/RAM32.lib/nom_ff_n40C_1v95/RAM32__nom_ff_n40C_1v95.lib"
+      }
+    }
+  },
+  "//": "ANCHOR_CELLS_TABLE: none - a free draw (2026-10-24, the 5x4 tile): the tables in placements/ were placed on the 4x4 tile (rc15's was the default until rc17) and free draws have been the release recipe since rc12 (the anchored replays, rc3 of rc2 and rc5 of rc4, routed 15% heavier than fresh draws). The 4x4 tables stay as overlays: trial_anchor_rc12.json (the second chip's release), trial_anchor_rc11.json, trial_anchor_rc10.json, trial_anchor_rc8.json, trial_anchor_rc7.json, trial_anchor_rc6.json, trial_anchor_rc4.json, trial_anchor_rc3.json, trial_anchor_rc2.json; placements/macro-rc15_final_cells.json is rc15's.",
+  "ANCHOR_CELLS_TABLE": null,
+  "ANCHOR_SEQ_TABLE": null,
+  "EXTRA_VERILOG_MODELS": [
+    "dir::../src/RAM32.v"
+  ],
+  "//art": "The chip art (Ken, 2026-10-24): Calvin as placement blockages, not metal - his two-colour 73 x 74 drawing (art/calvin_nocircle/source.png, png2pixels.py: black = blocked, 1016 pixels, with 7 filled where two blocked pixels touched only at a corner - Magic nwell.1) as hard placement blockages, each pixel two rows (5.44 um) by 12 sites (5.52 um), the picture 403 x 403 um at (12.42, 97.92), left of the RAM32 with Calvin's bottom about level with the RAM32's top: no cell of any kind on a pixel, the rows, rails and routing go on over them. Project.ArtPixels makes the blockages after the rows are cut; Project.ArtPixelTaps, after tapcell (which ignores blockages), re-taps the rows the picture crosses - the taps on pixels removed and taps added until every free segment of such a row has one within 7 um of every point (Magic nwell.4, LU.2 / LU.3). Tried on the 5x4 tile: runs/macro-calvin-nocircle-5x4 (at y 54.40) routed clean. The met4 Calvin (art/calvin, chip_art.py, on the 4x4 tile from rc4 to rc17) is dropped: on 5x4 its keep-out sat mid-tile, and one draw left 4 VGND shorts against its corner.",
+  "CHIP_ART_PIXELS_JSON": "dir::art/calvin_nocircle/pixels.json",
+  "CHIP_ART_PIXELS_ORIGIN": [12.42, 97.92],
+  "CHIP_ART_PIXEL_SITES": 12,
+  "CHIP_ART_PIXEL_ROWS": 2
+}

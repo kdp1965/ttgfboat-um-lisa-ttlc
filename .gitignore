@@ -1,0 +1,31 @@
+.DS_Store
+.idea
+.*.swp
+*.vcd
+*.fst
+*.fst.hier
+runs
+tt
+tt_submission
+src/user_config.json
+src/config_merged.json
+test/sim_build
+test/__pycache__/
+test/results.xml
+test/gate_level_netlist.v
+test/output/
+# the testbenches' builds and results
+test/**/sim_build*/
+test/**/sb*/
+test/**/__pycache__/
+test/**/*.xml
+test/**/*.vcd
+test/**/*.fst
+# the local harden's outputs and merged configs (harden/)
+harden/runs/
+harden/config_merged*.json
+harden/__pycache__/
+# the FPGA build
+fpga/arty_a7/build/
+fpga/arty_a7/gen/
+fpga/arty_a7/.Xil/

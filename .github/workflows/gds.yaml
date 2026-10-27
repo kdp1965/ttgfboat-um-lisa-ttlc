@@ -1,0 +1,57 @@
+name: gds
+
+# The project's GDS is hardened locally (harden/, the DFFRAM-macro flow on
+# gf180mcuD; GF180.md) and committed to gds/, lef/ and pnl/: this workflow
+# publishes that as the submission's GDS artifact, runs the Tiny Tapeout
+# precheck on it and deploys the 2D / 3D viewer to the repo's GitHub Pages
+# (https://kdp1965.github.io/ttgfboat-um-lisa-ttlc/).  It runs on every
+# push, like test and docs.  The actions are the ttgf26c ones, as the GF180
+# "Best Of All Time" shuttle's template uses (its standard flow, hardening
+# in the action, cannot place the RAM32 macro).
+
+on:
+  push:
+    branches:
+      - '**'       # every branch push; not a tag's (the same commit again) - a
+                   # filter naming only tags would have skipped the branches too
+  workflow_dispatch:
+
+jobs:
+  gds:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Read top module name
+        uses: mikefarah/yq@v4
+        id: top_module
+        with:
+          cmd: echo TOP_MODULE=`yq '.project.top_module' info.yaml` > $GITHUB_OUTPUT
+
+      - name: Create and publish the GDS artifact
+        uses: TinyTapeout/tt-gds-action/custom_gds@ttgf26c
+        with:
+          pdk: gf180mcuD
+          top_module: ${{ steps.top_module.outputs.TOP_MODULE }}
+          gds_path: gds/${{ steps.top_module.outputs.TOP_MODULE }}.gds
+          lef_path: lef/${{ steps.top_module.outputs.TOP_MODULE }}.lef
+          verilog_path: pnl/${{ steps.top_module.outputs.TOP_MODULE }}.pnl.v
+
+  precheck:
+    needs: gds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run Tiny Tapeout Precheck
+        uses: TinyTapeout/tt-gds-action/precheck@ttgf26c
+
+  viewer:
+    needs: gds
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    steps:
+      - uses: TinyTapeout/tt-gds-action/viewer@ttgf26c
