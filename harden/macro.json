@@ -3,9 +3,9 @@
   "REMOVE_SOURCES": [
     "RAM32.v"
   ],
-  "//": "GPL_CELL_PADDING 2 and PL_TARGET_DENSITY_PCT 84 (the sky130 chip's recipe: 2 and 85): a site each side of every cell in global placement - GF180's cells average 6.9 um here, so +16% - reserves the room the flow's buffers, CTS and hold fixes take afterwards, which otherwise packed bins past 90% where the detailed router stalled.  The target is the padded utilization plus slack: without the TTLC the core logic is 452K um2 synthesized (575.4K less the RAM32's flops), about 642K placed (gf1 grew 1.42x), 69% of the 929K beside the macro, 80% padded.  gf1, the 4x4 with the TTLC at 85 unpadded: 77% utilization, global-route overflow 24632, the detailed router at 33.7K violations after three iterations (stopped).",
+  "//": "GPL_CELL_PADDING 2 and PL_TARGET_DENSITY_PCT 72 (the sky130 chip's recipe: 2 and 85): a site each side of every cell in global placement - GF180's cells average 6.9 um here, so +16% - reserves the room the flow's buffers, CTS and hold fixes take afterwards, which otherwise packed bins past 90% where the detailed router stalled.  The target is a little above the padded utilization at placement, so the cells spread over the whole area instead of leaving the far corner empty (Ken, on gf1: empty regions beside the macro while the rest squeezed): without the TTLC the core logic is 452K um2 synthesized (575.4K less the RAM32's flops), 481K at global placement with the fanout buffers, 52% of the 929K um2 beside the macro, about 60% padded (GPL prints its minimum feasible density); the repair, CTS and hold buffers then add about 40% in the room the padding kept.  gf1, the 4x4 with the TTLC at 85 unpadded: 77% utilization, global-route overflow 24632, the detailed router at 33.7K violations after three iterations (stopped).",
   "GPL_CELL_PADDING": 2,
-  "PL_TARGET_DENSITY_PCT": 84,
+  "PL_TARGET_DENSITY_PCT": 72,
   "//": "The antenna repair's iterations as the sky130 chip's rc22+ (3 left a met3 net at 1.02 there).",
   "GRT_ANTENNA_REPAIR_ITERS": 5,
   "DRT_ANTENNA_REPAIR_ITERS": 5,
@@ -24,7 +24,7 @@
       "instances": {
         "ram1": {
           "location": [
-            1090.6,
+            740.77,
             3.92
           ],
           "orientation": "N"
