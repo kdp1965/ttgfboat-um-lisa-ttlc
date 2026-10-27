@@ -8,7 +8,9 @@ project:
   clock_hz:     25000000       # Clock frequency in Hz (or 0 if not applicable); provisional, from the GF180 timing
 
   # How many tiles your design occupies? A GF180 1x1 tile is about 347x161 uM.
-  tiles: "4x4"          # 1440.32 x 736.96 um (valid: 1x1, 1x2, 2x2, 3x2, 4x2, 3x4, 4x4); the sky130 chip was a 5x4, 856.52 x 511.36
+  tiles: "5x4"          # 1804.88 x 736.96 um: one column more than the 4x4 (1440.32 x 736.96), the largest in
+                        # tt-support-tools' GF180 table - the design (77% of the 4x4 after placement) did not route
+                        # there; Tiny Tapeout must add the size as they did for the sky130 chip's 5x4 (GF180.md)
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
   top_module:  "tt_um_pettit_lisa"

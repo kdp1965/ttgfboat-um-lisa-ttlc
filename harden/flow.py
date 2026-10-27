@@ -24,6 +24,7 @@ from librelane.steps.odb import OdbpyStep
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PDK = "gf180mcuD"
+PDN_VERTICAL_LAYER = "Metal4"
 
 
 class ExtendPowerStripes(OdbpyStep):
@@ -35,8 +36,9 @@ class ExtendPowerStripes(OdbpyStep):
 
     def get_command(self):
         # the tile's vertical PDN layer: Metal4 on gf180mcuD (odb_stripes.py's
-        # default is sky130's met4)
-        return super().get_command() + ["--layer", self.config["PDN_VERTICAL_LAYER"]]
+        # default is sky130's met4; the PDK's PDN_VERTICAL_LAYER is not in
+        # this step's configuration view)
+        return super().get_command() + ["--layer", PDN_VERTICAL_LAYER]
 
 
 class StandardFlow(Classic):

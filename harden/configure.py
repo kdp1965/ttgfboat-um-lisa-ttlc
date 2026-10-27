@@ -24,6 +24,13 @@ TILE_SIZES = {                       # tt-support-tools tech/gf180mcuD/tile_size
     "2x2": [0, 0, 711.20, 325.36], "3x2": [0, 0, 1075.76, 325.36],
     "3x4": [0, 0, 1075.76, 736.96], "4x2": [0, 0, 1440.32, 325.36],
     "4x4": [0, 0, 1440.32, 736.96],
+    # 5x4: one more tile column (364.56 um per column: 346.64, 711.20, 1075.76,
+    # 1440.32); not in tt-support-tools' table (2026-10-27) - tt_block_5x4_pgvdd.def
+    # here is the 4x4 template with that die (the pins sit at the left of the
+    # top edge in every template, as in TT's own sky130 5x4), and the
+    # submission needs Tiny Tapeout to add the size, as they did for the
+    # sky130 chip's 5x4
+    "5x4": [0, 0, 1804.88, 736.96],
 }
 DEF_TEMPLATE = "tt_block_%s_pgvdd.def"      # tt-support-tools tech/gf180mcuD/def/
 SCL_LIB = "pdk_dir::libs.ref/gf180mcu_fd_sc_mcu7t5v0/lib/gf180mcu_fd_sc_mcu7t5v0__%s.lib"
