@@ -18,8 +18,8 @@ make                          # test_autobaud (the debug UART trained at six bit
 make BANK=1                   # the bank registers (RESPIN 22, the data map of 28): progs/bank.c with routines in banks 1-3, the cache on
 make OVERRUN=1                # the UART receive FIFO's overrun flag (RESPIN 14): progs/uartov.c
 make SPIM=1                   # the SPI master (RESPIN 29): progs/spi.c against tb.v's two SPI
-                              # devices on the mux-2 pins, then on the TTLC's pins with the
-                              # loopback running (the interlock: no scan inside a transaction)
+                              # devices on the mux-2 pins (the sky130 chip's second test, on the
+                              # TTLC's pins with its loopback running, has no TTLC to run here)
 make WS2812=1                 # the WS2812B driver (RESPIN 33): progs/ws2812.c - frames on uo[1] / uo[2]
                               # decoded by tb.v's ws2812_rx, the vector-6 request, an underrun
 make MISC36=1                 # RESPIN 36: progs/misc36.c - the cycle counter, the watchdog (a reset and
