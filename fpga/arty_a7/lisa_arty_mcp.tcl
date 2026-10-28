@@ -113,8 +113,10 @@ set groups {pc win_count win_head win_data brk dbg_a dbg_di dbg_we dbg_halted co
 set report "lisa_arty_mcp:"
 foreach g $groups { append report " $g [llength [set $g]]" }
 puts $report
+# fx / facc are the BF16 unit's: absent on the GF180 build (WANT_BF16
+# undefined, GF180.md), so they may be empty
 foreach g $groups {
-   if {[llength [set $g]] == 0} { error "lisa_arty_mcp: no registers found for $g" }
+   if {[llength [set $g]] == 0 && $g ni {fx facc}} { error "lisa_arty_mcp: no registers found for $g" }
 }
 
 # the registers written at the end of an instruction, three clocks from the
@@ -146,8 +148,10 @@ if {[llength $i_ready] == 0} {
 puts "lisa_arty_mcp: core_i_ready nets [llength $i_ready]"
 if {[llength $i_ready] == 0} { error "lisa_arty_mcp: the core_i_ready net was not found" }
 puts "lisa_arty_mcp: core_i_ready = [get_property NAME $i_ready]"
-set_multicycle_path 3 -setup -through $i_ready -to $facc
-set_multicycle_path 2 -hold  -through $i_ready -to $facc
+if {[llength $facc] > 0} {
+   set_multicycle_path 3 -setup -through $i_ready -to $facc
+   set_multicycle_path 2 -hold  -through $i_ready -to $facc
+}
 # the BF16 adder's cone into the accumulator (29 levels, 20.5 ns here):
 # the accumulator loads only at the end of the execute state or the stage
 # after, and everything the adder takes was written three or more clocks

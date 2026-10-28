@@ -11,6 +11,12 @@
   "DRT_ANTENNA_REPAIR_ITERS": 5,
   "FP_MACRO_HORIZONTAL_HALO": 2,
   "FP_MACRO_VERTICAL_HALO": 1,
+  "//": "FP_OBSTRUCTIONS (gf10, 2026-10-28): 20 um channels with no placement sites left of and above the macro and the 17 um to the die edge at its right. In gf6 and gf9 alike, 85% of the detailed router's remaining violations sat in the 30 um bins at the macro's top-left corner (x 690-780, y 150-240; 388 in one bin in gf9) - Metal2 / Metal3 / Metal4 shorts on the nets to the Do pins (the left edge, Metal3) and the Di pins (the top edge, Metal2), whose escapes had to cross the cells standing against the 2 / 1 um halo - while the global router's Metal3 usage stayed at 86-88% whatever cells were removed (the cut peripherals were compact; the wire demand is the core's). gf7 tried these channels together with moving the macro to the middle, and the move alone made Metal3 93%: this is the channels at the macro's place. 22K um2 of sites, 2.4% of the rows.",
+  "FP_OBSTRUCTIONS": [
+    [720.77, 0.0, 740.77, 192.48],
+    [720.77, 172.48, 1433.6, 192.48],
+    [1416.69, 0.0, 1433.6, 192.48]
+  ],
   "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the 36-site stubs between the macro and the core's right edge stay.",
   "FP_PRUNE_THRESHOLD": 11,
   "ERROR_ON_PDN_VIOLATIONS": false,
