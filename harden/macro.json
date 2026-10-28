@@ -24,7 +24,7 @@
   ],
   "//": "ROUTING_OBSTRUCTIONS (gf12, 2026-10-28): no signal routing on Metal4 over the macro. gf11's router finished (828 violations at its 64th iteration, 298 at its best) with 333 of its last 521 on Metal4 inside the macro's footprint - signal nets (the core's sp, the QSPI read data) shorting the macro's Metal4 (183) and the tile's VPWR / VGND stripes over it (113): the abstract hides only the macro's own stripe columns on Metal4 (the pins must stay), so the global router saw free vertical capacity over the macro and sent nets through, and the detailed router could not thread them between the power stripes. Nothing has to cross a corner macro; its pins are fed by the stripes, which pdngen and ExtendPowerStripes draw before this obstruction is added (step 24).",
   "ROUTING_OBSTRUCTIONS": [
-    "Metal4 701.90 3.92 1377.82 172.48"
+    ["Metal4", 701.90, 3.92, 1377.82, 172.48]
   ],
   "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the 36-site stubs between the macro and the core's right edge stay.",
   "FP_PRUNE_THRESHOLD": 11,
