@@ -1,0 +1,8 @@
+{
+  "//": "gf15 (2026-10-28): the last step of the Metal3 series - the global router holds back nothing on Metal3 and gets 150 overflow iterations instead of 50. gf14 (Metal3 held back 5%) signed off at 22 routing violations, ALL on one net routed through the macro's footprint by the 127 GCells of Metal3 overflow that were left, LVS clean (0), antennas 0, setup nominal +1.67 ns at 40 ns (ss -31, ff +5.8), hold tt +0.59 / ss -1.0 (the uio input paths against the 14 ns clock insertion at ss). Metal2 and Metal4 keep the 30%.",
+  "MAX_FANOUT_CONSTRAINT": 20,
+  "MAX_TRANSITION_CONSTRAINT": 5,
+  "GRT_ADJUSTMENT": 0.0,
+  "GRT_LAYER_ADJUSTMENTS": [0, 0.3, 0, 0.3, 0],
+  "GRT_OVERFLOW_ITERS": 150
+}
