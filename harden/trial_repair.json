@@ -1,0 +1,5 @@
+{
+  "//": "A trial (make macro OVERLAY=trial_repair.json, 2026-10-27): the design repair's limits relaxed. gf4 (the 4x4 without the TTLC, padding 2 / density 72) placed at 632.7K um2 = 68% beside the macro and its router plateaued at 1000-2000 violations; of the growth from the 451K synthesized, the slew / fanout repair was +125K (4777 buffers in 1417 nets, 1858 upsizes, for 2365 slew and 601 fanout violations at GF180's default fanout 10 and 3 ns transition limit), taps +29K, CTS +14K, the timing repair +13K, hold +0.1K. Fanout 20 and 5 ns here, to see what the repair gives back (the sky130 chip's fanout 16 gave nothing there: its repair upsized instead of buffering).",
+  "MAX_FANOUT_CONSTRAINT": 20,
+  "MAX_TRANSITION_CONSTRAINT": 5
+}
