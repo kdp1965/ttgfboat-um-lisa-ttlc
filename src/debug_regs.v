@@ -28,6 +28,13 @@ SUCH DAMAGE.
 ================================================================================
 */
 
+// `define WANT_TTLC    // the Tiny Tapeout Logic Controller: not on the GF180 chip (GF180.md,
+                        // tt_um_pettit_lisa.v has the same define).  Without it the ICU's debug
+                        // registers go: 0x40 run control, 0x41 PC, 0x48-0x4a the breakpoints (45
+                        // latches), 0x1f the TTLC base (16 latches) and 0x15's upper bits (the
+                        // TTLC fetch's select: the fetch is the WS2812B DMA's and uses lisa2's).
+                        // They read 0, ttlc_halt is 1
+
 module debug_regs
 #(
    parameter CHIP_SELECTS = 2
@@ -65,7 +72,11 @@ module debug_regs
    output reg  [CHIP_SELECTS -1:0]  lisa2_ce_ctrl,
    output wire [15:0]         lisa2_base_addr,
 
+`ifdef WANT_TTLC
    output reg  [CHIP_SELECTS -1:0]  ttlc_ce_ctrl,
+`else
+   output wire [CHIP_SELECTS -1:0]  ttlc_ce_ctrl,     // the reset value
+`endif
    output wire [15:0]         ttlc_base_addr,
 
    output reg  [CHIP_SELECTS-1:0] addr_16b,
@@ -104,8 +115,13 @@ module debug_regs
    input  wire [13:0]         ttlc_pc,          // {group, slot} (ttlc_fetch.v)
    input  wire                ttlc_exec,        // the TTLC retires an instruction (its PC moves)
    output wire                ttlc_halt,
+`ifdef WANT_TTLC
    output reg                 ttlc_reset,
    output reg                 ttlc_shiftclk,
+`else
+   output wire                ttlc_reset,
+   output wire                ttlc_shiftclk,
+`endif
    input  wire                ttlc_i_ready,
    input  wire                ttlc_data_in,
    input  wire                ttlc_data_out,
@@ -115,6 +131,7 @@ module debug_regs
    wire        debug_qspi_write;
    wire        debug_qspi_read;
    reg  [7:0]  cmd_quad_write_r;
+`ifdef WANT_TTLC
    wire [14:0] ttlc_brk_addr0;   // {valid, pc}
    wire [14:0] ttlc_brk_addr1;
    wire [14:0] ttlc_brk_addr2;
@@ -122,15 +139,24 @@ module debug_regs
    reg         ttlc_run;
    reg         ttlc_skip;        // run / step written: the breakpoint at this PC is passed
    wire        ttlc_brk;
+`else
+   assign ttlc_ce_ctrl   = {{(CHIP_SELECTS-1){1'b0}}, 1'b1};
+   assign ttlc_base_addr = 16'h0;
+   assign ttlc_reset     = 1'b0;
+   assign ttlc_shiftclk  = 1'b0;
+   assign ttlc_halt      = 1'b1;
+`endif
    wire        dbg_addr_12;
    wire        dbg_addr_13;
    wire        dbg_addr_1b;
    wire        dbg_addr_1c;
    wire        dbg_addr_1e;
+`ifdef WANT_TTLC
    wire        dbg_addr_1f;
    wire        dbg_addr_48;
    wire        dbg_addr_49;
    wire        dbg_addr_4a;
+`endif
    (* keep = "true" *)
    wire        dbg_we_12;
    (* keep = "true" *)
@@ -141,6 +167,7 @@ module debug_regs
    wire        dbg_we_1c;
    (* keep = "true" *)
    wire        dbg_we_1e;
+`ifdef WANT_TTLC
    (* keep = "true" *)
    wire        dbg_we_1f;
    (* keep = "true" *)
@@ -149,6 +176,7 @@ module debug_regs
    wire        dbg_we_49;
    (* keep = "true" *)
    wire        dbg_we_4a;
+`endif
    wire [10:0] addr_1c_bits;
    wire [14:0] addr_1e_bits;
 
@@ -169,10 +197,12 @@ module debug_regs
    assign dbg_addr_1b = dbg_a == 8'h1b;
    assign dbg_addr_1c = dbg_a == 8'h1c;
    assign dbg_addr_1e = dbg_a == 8'h1e;
+`ifdef WANT_TTLC
    assign dbg_addr_1f = dbg_a == 8'h1f;
    assign dbg_addr_48 = dbg_a == 8'h48;
    assign dbg_addr_49 = dbg_a == 8'h49;
    assign dbg_addr_4a = dbg_a == 8'h4a;
+`endif
 
    assign io_mux_bits = addr_1c_bits[7:0];
    assign clk_div     = addr_1c_bits[9:8];
@@ -222,6 +252,7 @@ module debug_regs
             .VPW(VGND),
       `endif
          .A1(dbg_addr_1e), .A2(dbg_we), .Z(dbg_we_1e) );
+`ifdef WANT_TTLC
    gf180mcu_fd_sc_mcu7t5v0__and2_4 and_1f(
       `ifdef USE_POWER_PINS
             .VDD(VPWR),
@@ -254,6 +285,7 @@ module debug_regs
             .VPW(VGND),
       `endif
          .A1(dbg_addr_4a), .A2(dbg_we), .Z(dbg_we_4a) );
+`endif
 
    // ===================================================================
    // We are generating latches for most of the static flops
@@ -317,6 +349,7 @@ module debug_regs
                .Q          ( addr_1c_bits[b]    )
             );
          end
+`ifdef WANT_TTLC
          gf180mcu_fd_sc_mcu7t5v0__latrnq_1   ttlc_base_latch
          (
          `ifdef USE_POWER_PINS
@@ -330,6 +363,7 @@ module debug_regs
             .D          ( dbg_di[b]          ),
             .Q          ( ttlc_base_addr[b]  )
          );
+`endif
       end
       for (b = 0; b < 15; b = b + 1)
       begin : BREAK_BITS
@@ -349,6 +383,7 @@ module debug_regs
             .Q          ( addr_1e_bits[b]    )
          );
          end
+`ifdef WANT_TTLC
          gf180mcu_fd_sc_mcu7t5v0__latrnq_1   ttlc_brk0_latch
          (
          `ifdef USE_POWER_PINS
@@ -388,6 +423,7 @@ module debug_regs
             .D          ( dbg_di[b]          ),
             .Q          ( ttlc_brk_addr2[b]  )
          );
+`endif
       end
    endgenerate
          
@@ -404,7 +440,9 @@ module debug_regs
 //         ttlc_base_addr    <= 16'h0;
          lisa1_ce_ctrl     <= {{(CHIP_SELECTS-1){1'b0}}, 1'b1};
          lisa2_ce_ctrl     <= {{(CHIP_SELECTS-1){1'b0}}, 1'b1};
+`ifdef WANT_TTLC
          ttlc_ce_ctrl      <= {{(CHIP_SELECTS-1){1'b0}}, 1'b1};
+`endif
          debug_ce_ctrl     <= {{(CHIP_SELECTS-1){1'b0}}, 1'b1};
          quad_mode         <= {{(CHIP_SELECTS-1){1'b0}}, 1'b1};
          addr_16b          <= {CHIP_SELECTS{1'b0}};
@@ -416,8 +454,10 @@ module debug_regs
          ddr_dummy         <= 4'h7;
          cmd_quad_write_r  <= 8'h38;
          plus_guard_time   <= 4'h1;
+`ifdef WANT_TTLC
          ttlc_reset        <= 1'b0;
          ttlc_shiftclk     <= 1'b0;
+`endif
 //         output_mux_bits   <= 16'h0;
 //         io_mux_bits       <= 8'h0;
          cache_disabled    <= 1'b0;
@@ -432,9 +472,11 @@ module debug_regs
 //         clk_div           <= 2'h0;
 //         ttlc_brk_addr0    <= 12'hfff;
 //         ttlc_brk_addr1    <= 12'hfff;
+`ifdef WANT_TTLC
          ttlc_run          <= 1'b0;
          ttlc_step         <= 1'b0;
          ttlc_skip         <= 1'b0;
+`endif
       end
       else
       begin
@@ -446,7 +488,11 @@ module debug_regs
 //               4'h2: lisa1_base_addr <= dbg_di;
 //               4'h3: lisa2_base_addr <= dbg_di;
                4'h4: lisa1_ce_ctrl <= dbg_di[CHIP_SELECTS -1:0];
+`ifdef WANT_TTLC
                4'h5: {ttlc_ce_ctrl, lisa2_ce_ctrl} <= dbg_di[CHIP_SELECTS*2 -1:0];
+`else
+               4'h5: lisa2_ce_ctrl <= dbg_di[CHIP_SELECTS -1:0];
+`endif
                4'h6: debug_ce_ctrl <= dbg_di[CHIP_SELECTS -1:0];
                4'h7: {ddr_dummy, ddr_cap, ddr_seamless, ddr_sel, addr_16b, is_flash, quad_mode} <=
                         dbg_di[CHIP_SELECTS*4+7:0];
@@ -477,6 +523,7 @@ module debug_regs
                ttlc_cache_invalidate <= 1'b0;
          end
 
+`ifdef WANT_TTLC
          if (dbg_a[7:4] == 4'h4 && dbg_we)
          begin
             case (dbg_a[3:0])    
@@ -511,6 +558,7 @@ module debug_regs
             if (ttlc_brk && !ttlc_skip && !ttlc_step)
                ttlc_run <= 1'b0;
          end
+`endif
       end
    end
 
@@ -552,6 +600,7 @@ module debug_regs
          default dbg_do = 16'h0;
          endcase
       end
+`ifdef WANT_TTLC
       else if (dbg_a[7:4] == 4'h4 && dbg_rd == 1'b1)
       begin
          case (dbg_a[3:0])
@@ -563,6 +612,7 @@ module debug_regs
          default dbg_do = 16'h0;
          endcase
       end
+`endif
 `ifdef DONT_COMPILE
       else if (dbg_a[7:4] == 4'h5 && dbg_rd == 1'b1)
       begin
@@ -583,10 +633,12 @@ module debug_regs
 `endif
    end
 
+`ifdef WANT_TTLC
    assign ttlc_brk  = ttlc_brk_addr0 == {1'b1, ttlc_pc} ||
                       ttlc_brk_addr1 == {1'b1, ttlc_pc} ||
                       ttlc_brk_addr2 == {1'b1, ttlc_pc};
    assign ttlc_halt = !(ttlc_run | ttlc_step) | (ttlc_brk & !ttlc_skip & !ttlc_step);
+`endif
 
 endmodule
 

@@ -118,7 +118,7 @@ commands.  The individual register details will be described in the sections to 
  | 0x03 | LISA Stack Pointer (SP) LSW  | 0x1c | UIO mux, clk_div, psram_mod  |   
  | 0x04 | LISA Return Address (RA) LSW | 0x1d | CACHE control                |   
  | 0x05 | LISA Index Register (IX) LSW | 0x1e | QSPI edge / SCLK speed       |   
- | 0x06 | LISA Data bus                | 0x1f | MC14500b Base Address        |   
+ | 0x06 | LISA Data bus                | 0x1f | MC14500b Base Address (not on GF180) |   
  | 0x07 | LISA Data bus address LSW    | 0x20 | Debug QSPI Read / Write      |   
  | 0x08 | LISA Breakpoint 1            | 0x21 | Debug QSPI custom command    |   
  | 0x09 | LISA Breakpoint 2            | 0x22 | Debug read SPI status reg    |   
@@ -131,7 +131,7 @@ commands.  The individual register details will be described in the sections to 
  | 0x11 | Debug QSPI Address (MSB8)    | 0x39 | LISA SP MSB                  |     
  | 0x12 | LISA1 QSPI base address      | 0x3a | LISA RX_COND, RA MSB         |     
  | 0x13 | LISA2 QSPI base address      | 0x3c | LISA Data bus addr MSB       |     
- | 0x14 | LISA1 QSPI CE select         | 0x40 | MC14500B Run Control         |     
+ | 0x14 | LISA1 QSPI CE select         | 0x40 | MC14500B Run Control (0x40-0x4a not on GF180) |     
  | 0x15 | LISA2 QSPI CE select         | 0x41 | MC14500B Program Counter     |     
  | 0x16 | Debug QSPI CE select         | 0x48 | MC14500B Breakpoint 1        |     
  | 0x17 | QSPI Mode (QUAD, flash, 16b, DDR) | 0x49 | MC14500B Breakpoint 2        |     
@@ -684,7 +684,8 @@ compiled out (GF180.md) - all that remains of it is the I/O block's 48 output fl
 driver uses as its pixel store and the core writes through the TTLC I/O window's TIDX / TDATA (bytes 0-5;
 the other bytes read 0, including the 64-bit storage's 12-15 and 20-23, so there is no Port D to LISA and no
 TTLC interrupt; a scan START does nothing), and its QSPI fetch channel as the driver's DMA engine.  The debug
-registers 0x40-0x4a exist but control nothing.  The section is kept for the sky130 chips.
+registers 0x40, 0x41, 0x48-0x4a and the TTLC base 0x1f read 0 and take no writes; 0x15 holds only the LISA2
+select.  The section is kept for the sky130 chips.
 
 The second subsystem within this design is a small PLC type circuit.  It is architected around a 1-bit processor from 1977
 designed by Motorola ... the MC14500B Industrial Control Unit (ICU).  The TTLC wraps the ICU "processor" with an instruction
