@@ -115,6 +115,10 @@ module lisa_uart
    // ==========================================================================
    // Instantiate the autobaud detector
    // ==========================================================================
+// `define WANT_UART2_AUTOBAUD   // not on the GF180 chip (GF180.md, Ken 2026-10-28): UART2 runs at
+                                 // the generator's reset period (416 clocks) until the program
+                                 // writes its divisor (0x1E); the debug port keeps its autobaud
+`ifdef WANT_UART2_AUTOBAUD
    debug_autobaud i_lisa_autobaud
    (
       // Timing and reset inputs
@@ -130,6 +134,10 @@ module lisa_uart
       .rx_sel    (                           )  // Selected RX input
     /* verilator lint_on PINCONNECTEMPTY */  
    );
+`else
+   assign s_auto_brg_wr = 1'b0;
+   assign s_auto_brg_d  = 14'h0;
+`endif
 
    // the generator takes the bit period in clocks (since the second
    // chip): the autobaud's measurement when it fires, else the CPU's

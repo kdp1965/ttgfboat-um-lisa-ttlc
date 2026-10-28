@@ -44,7 +44,8 @@ The following is a block diagram of the design:
    - Timer 3: a 16-bit timer with two PWM outputs and two input captures
    - WS2812B (NeoPixel) LED string driver on up to five pins, using the TTLC's output flops as its pixel buffer
    - Debug UART available to LISA core also
-   - Dedicated UART2 that is not shared with the debug interface
+   - Dedicated UART2 that is not shared with the debug interface (on GF180 without its own autobaud: it runs at
+     the generator's reset period, 416 clocks, until the program writes the divisor at peripheral 0x1E)
    - 8-bit Input port (PORTA)
    - 8-bit Output port (PORTB)
    - 4-bit BIDIR port (PORTC)

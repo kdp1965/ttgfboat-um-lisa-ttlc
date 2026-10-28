@@ -45,9 +45,9 @@ module debug_autobaud
 
    reg               s_div_found;               // Indicates if division found
    reg [13:0]        s_pulse_width;             // Pulse width in clks
-   reg [13:0]        s_bit_div1;                // The last three pulse widths in clocks
-   reg [13:0]        s_bit_div2;
-   reg [13:0]        s_bit_div3;
+   reg [13:0]        s_bit_div1;                // The last pulse width in clocks
+   reg [1:0]         s_agree_cnt;               // Pulses in a row that agreed with the one before (GF180:
+                                                // the two older widths the sky130 chips kept are this count)
    reg               s_last_rx1;                // Last registered value of rx
    reg               s_last_rx2;                // Last registered value of rx
    reg               s_last_rx3;                // Last registered value of rx
@@ -55,15 +55,20 @@ module debug_autobaud
    reg               s_done;
    wire              s_sel_rx;
 
-   // The three latest pulses agree to within two clocks (an edge lands in
-   // a clock either way after the input synchronizer) and are at least 32
+   // Three pulses in a row agree to within two clocks (an edge lands in a
+   // clock either way after the input synchronizer) and are at least 32
    // clocks, the generator's floor: a bit period, exactly (TT07 kept the
-   // width over 32, so a bit had to be a multiple of 32 clocks)
-   wire [14:0]       s_diff12 = {1'b0, s_bit_div1} - {1'b0, s_bit_div2} + 15'd2;
-   wire [14:0]       s_diff13 = {1'b0, s_bit_div1} - {1'b0, s_bit_div3} + 15'd2;
-   wire              s_agree  = s_diff12 <= 15'd4 && s_diff13 <= 15'd4 && s_bit_div1 >= 14'd32;
+   // width over 32, so a bit had to be a multiple of 32 clocks).  The pulse
+   // ending now (s_pulse_width + 1 clocks) is compared with the one before
+   // it (s_bit_div1) as it ends, and s_agree_cnt counts the agreements in a
+   // row: two of them are three pulses alike.  The sky130 chips kept the
+   // three widths and compared the latest with both older ones (the same
+   // test to within the two-clock jitter); this is 26 flops and a 15-bit
+   // subtractor less (GF180.md).
+   wire [14:0]       s_diff   = {1'b0, s_pulse_width} + 15'd3 - {1'b0, s_bit_div1};
+   wire              s_agree  = s_diff <= 15'd4 && s_pulse_width >= 14'd31;
 
-   assign div = s_bit_div1;                     // The latest of the three
+   assign div = s_bit_div1;                     // The latest pulse
    assign s_sel_rx = s_rx_sel == 2'h1 ? rx1 : s_rx_sel == 2'h2 ? rx2 : s_rx_sel == 2'h3 ? rx3 : 1'b0;
 
    always @(posedge clk or negedge rst_n)
@@ -73,8 +78,7 @@ module debug_autobaud
          s_div_found    <= 1'b0;                // Baud rate not found
          wr             <= 1'b0;
          s_bit_div1     <= 14'h0;
-         s_bit_div2     <= 14'h0;
-         s_bit_div3     <= 14'h0;
+         s_agree_cnt    <= 2'h0;
          s_pulse_width  <= 14'h0;
          s_last_rx1     <= 1'b0;
          s_last_rx2     <= 1'b0;
@@ -110,15 +114,17 @@ module debug_autobaud
                // Reset the pulse width counter
                s_pulse_width <= 14'h0;
                
-               // If this is a valid pulse, then save the last 3 pulses
+               // If this is a valid pulse, then save it and count it
+               // against the one before (an idle gap breaks the run)
                if (s_pulse_width != 14'h3FFF)
                begin
                   // Save the new pulse width (the counter ran from the
-                  // clock after the last edge) and shift the others
-                  s_bit_div1 <= s_pulse_width + 1'b1;
-                  s_bit_div2 <= s_bit_div1;
-                  s_bit_div3 <= s_bit_div2;
+                  // clock after the last edge)
+                  s_bit_div1  <= s_pulse_width + 1'b1;
+                  s_agree_cnt <= s_agree ? (s_agree_cnt == 2'd2 ? 2'd2 : s_agree_cnt + 2'd1) : 2'd0;
                end
+               else
+                  s_agree_cnt <= 2'h0;
             end
             else
             begin
@@ -127,7 +133,7 @@ module debug_autobaud
                   s_pulse_width <= s_pulse_width + 1;
 
                // Test for 3 equivalent bit periods
-               if (s_agree)
+               if (s_agree_cnt == 2'd2)
                begin
                   // We found the period
                   s_div_found <= 1'b1;

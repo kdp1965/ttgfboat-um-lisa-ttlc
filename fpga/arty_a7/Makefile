@@ -14,10 +14,12 @@
 #   make remote-log tail of the remote build log
 VIVADO     ?= vivado
 PART       ?= xc7a35ticsg324-1L
-CLK_DIV    ?= 20          # 1000 MHz / CLK_DIV: 20 = 50 MHz (closes since 2026-10-17, see README), 25 = 40, 15 = 66.67
+CLK_DIV    ?= 40          # 1000 MHz / CLK_DIV: 40 = 25 MHz, the GF180 chip's clock (GF180.md); 20 = 50 MHz (the sky130 build), 25 = 40
 HOST       ?= andromeda
 SETTINGS   ?= ~/xilinx/Vivado/2024.1/settings64.sh
-REMOTE_DIR ?= projects/tiny-tapeout/ttsky26d/ttsky26d-um-lisa-ttlc
+# the GF180 port's own tree there (the sky130 chip's is ttsky26d/ttsky26d-um-lisa-ttlc); no comment
+# on the line: make keeps the spaces before it in the value
+REMOTE_DIR ?= projects/tiny-tapeout/ttgfboat/ttgfboat-um-lisa-ttlc
 
 SRC  = ../../src
 GEN  = gen/debug_regs.v gen/lisa_dbg.v
