@@ -11,11 +11,16 @@
   "DRT_ANTENNA_REPAIR_ITERS": 5,
   "FP_MACRO_HORIZONTAL_HALO": 2,
   "FP_MACRO_VERTICAL_HALO": 1,
-  "//": "FP_OBSTRUCTIONS (gf10, 2026-10-28): 20 um channels with no placement sites left of and above the macro and the 17 um to the die edge at its right. In gf6 and gf9 alike, 85% of the detailed router's remaining violations sat in the 30 um bins at the macro's top-left corner (x 690-780, y 150-240; 388 in one bin in gf9) - Metal2 / Metal3 / Metal4 shorts on the nets to the Do pins (the left edge, Metal3) and the Di pins (the top edge, Metal2), whose escapes had to cross the cells standing against the 2 / 1 um halo - while the global router's Metal3 usage stayed at 86-88% whatever cells were removed (the cut peripherals were compact; the wire demand is the core's). gf7 tried these channels together with moving the macro to the middle, and the move alone made Metal3 93%: this is the channels at the macro's place. 22K um2 of sites, 2.4% of the rows.",
+  "//": "gf11 (Ken, 2026-10-28): the macro one stripe left, x 701.90 (= 2.24 + 18 x 38.87; its right edge 1377.82, 56 um short of the core's 1433.6, so the A0 / WE pins face a pocket instead of 17 um of die edge), hard 20 um channels (FP_OBSTRUCTIONS: no placement sites, no fill) left of, above and right of it for the pin escapes, and Ken's IHP recipe for the hot spots: soft placement keepouts (PL_SOFT_OBSTRUCTIONS: the global placer leaves them empty, the repair / CTS buffers and the fill may use them) over the areas the detailed router could not finish in gf6 and gf9 - the 30 um bins at the macro's top-left corner (x 690-780, y 150-240 with the macro at 740.77: here the block above the corner and the one left of it), and one above the macro's right end, where the heat map was hot too. The channels are 22.7K um2 of sites (2.4% of the rows), the soft keepouts 18.8K (the placer spreads around them).",
   "FP_OBSTRUCTIONS": [
-    [720.77, 0.0, 740.77, 192.48],
-    [720.77, 172.48, 1433.6, 192.48],
-    [1416.69, 0.0, 1433.6, 192.48]
+    [681.90, 0.0, 701.90, 192.48],
+    [681.90, 172.48, 1433.6, 192.48],
+    [1377.82, 0.0, 1397.82, 192.48]
+  ],
+  "PL_SOFT_OBSTRUCTIONS": [
+    [641.90, 192.48, 761.90, 262.48],
+    [641.90, 100.0, 681.90, 192.48],
+    [1337.82, 192.48, 1433.6, 262.48]
   ],
   "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the 36-site stubs between the macro and the core's right edge stay.",
   "FP_PRUNE_THRESHOLD": 11,
@@ -30,7 +35,7 @@
       "instances": {
         "ram1": {
           "location": [
-            740.77,
+            701.90,
             3.92
           ],
           "orientation": "N"
