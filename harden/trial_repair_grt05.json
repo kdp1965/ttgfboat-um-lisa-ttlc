@@ -1,0 +1,7 @@
+{
+  "//": "gf14 (2026-10-28): trial_repair_grt.json one step further - Metal3 held back 5% by the global router instead of 15%. gf13 (15%) took the global router's Metal3 overflow from 7593 to 1625 and the detailed router to 144 at its 33rd iteration (gf12: 177 at its best), and what remained was still nets dumped through the macro's footprint by the overflow that was left; the detailed router has had next to nothing to fix anywhere else, so Metal3 has the physical room (61% of its tracks used in gf12). Metal2 and Metal4 stay at the 30% (1 - 0.95 x 0.27).",
+  "MAX_FANOUT_CONSTRAINT": 20,
+  "MAX_TRANSITION_CONSTRAINT": 5,
+  "GRT_ADJUSTMENT": 0.05,
+  "GRT_LAYER_ADJUSTMENTS": [0, 0.27, 0, 0.27, 0]
+}
