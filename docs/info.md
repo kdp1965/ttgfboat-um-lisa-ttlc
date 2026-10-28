@@ -995,6 +995,9 @@ should not change while a frame is being sent.  LISA keeps running meanwhile; a 
 
 ## Cycle Counter, Watchdog and PDM Outputs
 
+**The watchdog is not on the GF180 chip** (GF180.md): WDT_CTRL / WDT_KICK / WDT_TIMEOUT / WDT_STAT (0x4C-0x4F) read
+0 and take no writes; the cycle counter and the PDM outputs are there.
+
 **Cycle counter.**  A free-running 32-bit count of clocks (it wraps every 86 seconds at 50 MHz), for timing
 and profiling.  Reading CYC0 latches the upper three bytes, so reading CYC0, CYC1, CYC2, CYC3 in that order
 gives one consistent value; writing CYC0 clears the counter.

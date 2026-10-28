@@ -29,7 +29,7 @@ LISA is a microcontroller built around a custom 8-bit accumulator core
    - UART (shared with the debugger), a dedicated UART2, two 16-bit timers,
      Timer 3 (PWM, capture, PDM), an 8-bit input port, 8-bit output port,
      4-bit bidirectional port, I2C master, SPI master, a WS2812B driver with
-     DMA, a cycle counter, a watchdog
+     DMA, a cycle counter
    - 8x8 multiplier, 16/16 divider (the sky130 chips' BF16 unit is not on
      this one: GF180.md)
    - (the sky130 chips' TTLC, the MC14500B-compatible logic controller with

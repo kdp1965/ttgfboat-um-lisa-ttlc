@@ -1,16 +1,12 @@
-/* misc36.c - RESPIN 36: the cycle counter (lisa_cyccnt.v), the watchdog
- * (lisa_wdt.v) and the PDM outputs (Timer 3's channels in PDM mode,
- * lisa_timer3.v IE [6:5]).
+/* misc36.c - RESPIN 36: the cycle counter (lisa_cyccnt.v) and the PDM
+ * outputs (Timer 3's channels in PDM mode, lisa_timer3.v IE [6:5]).  The
+ * GF180 chip has no watchdog (GF180.md): its registers 0x4C-0x4F read 0,
+ * and the sky130 version's checks 3 / 4 (kicks, the reset, WDRST) are not
+ * here.
  *
- * First run (WDRST clear):
  *  1 the cycle counter counts: a loop of known length, CYC0 latching 31:8
  *  2 a write clears it
- *  3 the watchdog kicked every 60000 clocks with a timeout of 2 x 65536
- *    (SCALE 0, TIMEOUT 1) does not fire through five kicks; then it is not
- *    kicked: it resets the core and the peripherals and the program starts
- *    again
- * Second run (WDRST set):
- *  4 WDRST set, EN clear; a 1 written clears WDRST
+ *  3 the watchdog's registers read 0 and take no writes
  *  5 Timer 3's channels in PDM mode at 64 and 192 (CMP0 / CMP1's low
  *    bytes; 25% and 75%: test.py measures them on uo[1] / uo[2], mux 2) -
  *    left running
@@ -51,20 +47,6 @@ void main(void)
   unsigned long a, b;
   unsigned char i;
 
-  if (WDT_STAT & 1) {
-    /* the second run: the watchdog fired */
-    puts("watchdog reset\n");
-    CHECK(4, (WDT_CTRL & 1) == 0 && ((WDT_STAT = 1), (WDT_STAT & 1) == 0));
-    T3_CMP0_L = 64;                   /* the levels */
-    T3_CMP1_L = 192;
-    T3_IE = 0x60;                     /* PDM0, PDM1: no captures, no interrupts */
-    T3_CTRL = 0x06;                   /* PWM0 / PWM1 out (uo[1] / uo[2]) */
-    CHECK(5, T3_IE == 0x60 && T3_CMP0_L == 64 && T3_CMP1_L == 192);
-    DONE();
-    for (;;)
-      ;
-  }
-
   puts("misc36\n");
   a = cycles();
   for (i = 0; i < 100; i++)
@@ -76,14 +58,17 @@ void main(void)
   a = cycles();
   CHECK(2, a < 1000);
 
-  WDT_TIMEOUT = 1;                     /* 2 ticks of 65536 clocks */
-  WDT_CTRL = 1;                        /* EN, SCALE 0 */
-  for (i = 0; i < 5; i++) {
-    wait_cycles(60000);
-    WDT_KICK = 0xA5;
-  }
-  CHECK(3, (WDT_CTRL & 1) == 1);
-  puts("waiting for the watchdog\n");
+  WDT_TIMEOUT = 1;                     /* no watchdog: nothing takes */
+  WDT_CTRL = 1;
+  wait_cycles(1000);
+  CHECK(3, WDT_CTRL == 0 && WDT_TIMEOUT == 0 && WDT_KICK == 0 && WDT_STAT == 0);
+
+  T3_CMP0_L = 64;                      /* the PDM levels */
+  T3_CMP1_L = 192;
+  T3_IE = 0x60;                        /* PDM0, PDM1: no captures, no interrupts */
+  T3_CTRL = 0x06;                      /* PWM0 / PWM1 out (uo[1] / uo[2]) */
+  CHECK(5, T3_IE == 0x60 && T3_CMP0_L == 64 && T3_CMP1_L == 192);
+  DONE();
   for (;;)
     ;
 }
