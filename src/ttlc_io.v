@@ -28,6 +28,13 @@ SUCH DAMAGE.
 ==============================================================================
 */
 
+// `define WANT_TTLC    // the Tiny Tapeout Logic Controller: not on the GF180 chip (GF180.md,
+                        // tt_um_pettit_lisa.v has the same define): the 64-bit storage goes with
+                        // the ICU - the core wrote and read it back through TIDX / TDATA (bytes
+                        // 12-15, 20-23) so constants alone would not remove it; those bytes read
+                        // 0, Port D to LISA reads 0 and the TTLC interrupt never fires.  The 48
+                        // output flops stay: the WS2812B driver's pixel store
+
 module ttlc_io
 (
    input  wire          clk,           // Clock signal
@@ -57,7 +64,11 @@ module ttlc_io
    // Internal memory for temporary storage and output register: 64 bits
    // since RESPIN 31 - bits 0-31 at addresses 96-127 as before, bits 32-63
    // at 160-191 (a block of 32 above the constants: one compare decodes it)
+`ifdef WANT_TTLC
    reg  [63:0]   temp_storage;
+`else
+   wire [63:0]   temp_storage = 64'h0;
+`endif
 
    // A large vector that contains all read back values: 0-47 the outputs,
    // 48-95 the inputs, 96-127 storage 0-31, 128-135 port_in, 136 RR, 137 0,
@@ -86,7 +97,9 @@ module ttlc_io
       if (rst)
       begin
          // Reset temporary storage and output registers when RST is high
+`ifdef WANT_TTLC
          temp_storage <= 64'h0;
+`endif
          output_pins <= 48'h0;
       end
       else
@@ -95,16 +108,19 @@ module ttlc_io
          // write overrides its one bit of the byte
          if (lisa_we && lisa_idx < 5'd6)
             output_pins[{lisa_idx[2:0], 3'b000} +: 8] <= lisa_wdata;
+`ifdef WANT_TTLC
          if (lisa_we && lisa_idx[4:2] == 3'b011)       // 12-15: storage 0-31
             temp_storage[{1'b0, lisa_idx[1:0], 3'b000} +: 8] <= lisa_wdata;
          if (lisa_we && lisa_idx[4:2] == 3'b101)       // 20-23: storage 32-63
             temp_storage[{1'b1, lisa_idx[1:0], 3'b000} +: 8] <= lisa_wdata;
+`endif
 
          if (mem_write)
          begin
             // Test if writing to output_pins or temp_storage
             if (address < 48)
                output_pins[address[5:0]] <= data_in;
+`ifdef WANT_TTLC
 
             // Writing to temp_storage: 96-127 bits 0-31, 160-191 bits
             // 32-63 (until RESPIN 31 address[6] & address[5], which also
@@ -113,6 +129,7 @@ module ttlc_io
                temp_storage[{1'b0, address[4:0]}] <= data_in;
             else if (address[7:5] == 3'b101)
                temp_storage[{1'b1, address[4:0]}] <= data_in;
+`endif
          end
       end
    end

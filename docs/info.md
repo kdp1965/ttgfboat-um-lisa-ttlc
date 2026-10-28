@@ -682,8 +682,9 @@ the result back with 'tfa'.  The facc and f0 - f3 registers can also be read thr
 **Not on the GF180 chip.**  The sky130 LISA chips have the TTLC this section describes; on GF180 it is
 compiled out (GF180.md) - all that remains of it is the I/O block's 48 output flops, which the WS2812B
 driver uses as its pixel store and the core writes through the TTLC I/O window's TIDX / TDATA (bytes 0-5;
-the other bytes read 0, a scan START does nothing), and its QSPI fetch channel as the driver's DMA
-engine.  The debug registers 0x40-0x4a exist but control nothing.  The section is kept for the sky130 chips.
+the other bytes read 0, including the 64-bit storage's 12-15 and 20-23, so there is no Port D to LISA and no
+TTLC interrupt; a scan START does nothing), and its QSPI fetch channel as the driver's DMA engine.  The debug
+registers 0x40-0x4a exist but control nothing.  The section is kept for the sky130 chips.
 
 The second subsystem within this design is a small PLC type circuit.  It is architected around a 1-bit processor from 1977
 designed by Motorola ... the MC14500B Industrial Control Unit (ICU).  The TTLC wraps the ICU "processor" with an instruction
