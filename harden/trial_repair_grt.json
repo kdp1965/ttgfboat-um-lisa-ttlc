@@ -1,0 +1,7 @@
+{
+  "//": "gf13 (2026-10-28): trial_repair.json (fanout 20, transition 5) plus the global router's capacity adjustment eased on Metal3. gf12's remaining violations (255 at iteration 40, 37 of them anywhere else) were 12 nets routed THROUGH the macro's footprint on Metal2 / Metal3 - nets whose cells all sit 200-400 um above it, e.g. a two-pin net at y 408 taken down into the macro and back - and shorting its blanket obstructions: the global router, allowed congestion, treats the macro's zero-capacity GCells as just another overflow, so once the band above the macro overflows on Metal3 (86% of the adjusted resource, 8300 overflow) the macro is where it dumps the rest. The 30% adjustment holds back capacity the detailed router can use (Metal3 physical usage is 61%; the detailed router had 37 violations outside the macro): 15% on Metal3, the 30% kept on Metal2 and Metal4 (1 - 0.85 x 0.82).",
+  "MAX_FANOUT_CONSTRAINT": 20,
+  "MAX_TRANSITION_CONSTRAINT": 5,
+  "GRT_ADJUSTMENT": 0.15,
+  "GRT_LAYER_ADJUSTMENTS": [0, 0.18, 0, 0.18, 0]
+}
