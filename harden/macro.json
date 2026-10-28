@@ -11,6 +11,12 @@
   "DRT_ANTENNA_REPAIR_ITERS": 5,
   "FP_MACRO_HORIZONTAL_HALO": 2,
   "FP_MACRO_VERTICAL_HALO": 1,
+  "//": "FP_OBSTRUCTIONS (gf7, 2026-10-27): 20 um channels with no placement sites left of, above and right of the macro (x 390.94-1066.86, y 3.92-172.48). gf6's router plateaued with nearly all of its 1600 violations in the 30 um bins at the macro's top-left corner (461 in one), Metal2 / Metal3 / Metal4 shorts on the nets to the Do pins (the left edge, Metal3) and the Di pins (the top edge, Metal2): the cells stood against the 2 / 1 um halo and the pin escapes had to cross them. GF180 has one horizontal routing layer (Metal3: GRT 86% used, overflow 8640; Metal2 78%, Metal4 42%), so the turns around the corner have no spare layer. The channels give the escapes 35 free tracks a layer; they cost 22K um2 of sites (2.4% of the rows). The macro itself moved 9 stripes left (Ken: the heat map was hot in the middle and cool at both edges) so cells sit on both sides and the A0 / WE pins face a pocket instead of the 17 um to the die edge.",
+  "FP_OBSTRUCTIONS": [
+    [370.94, 0.0, 390.94, 192.48],
+    [370.94, 172.48, 1086.86, 192.48],
+    [1066.86, 0.0, 1086.86, 192.48]
+  ],
   "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the 36-site stubs between the macro and the core's right edge stay.",
   "FP_PRUNE_THRESHOLD": 11,
   "ERROR_ON_PDN_VIOLATIONS": false,
@@ -24,7 +30,7 @@
       "instances": {
         "ram1": {
           "location": [
-            740.77,
+            390.94,
             3.92
           ],
           "orientation": "N"
