@@ -14,6 +14,19 @@
 # divider's operands carry lisa_div's port names).
 source $::env(SCRIPTS_DIR)/base.sdc
 
+# The hold check of the uio and ui inputs (GF180.md, 2026-10-28).  base.sdc
+# gives every input one delay for setup and hold, IO_DELAY_CONSTRAINT of the
+# period (8 ns at 40 ns), but on GF180 the clock reaches the capture flops
+# 14 ns after the edge at the slow corner (CTS's nine root delay buffers
+# balance the macro's internal clock latency, then the tree), so an input
+# changing 8 ns after the edge fails hold by 1-1.6 ns there.  No input can
+# change that early: the QSPI data lines answer the chip's own SCLK, which
+# leaves with the same insertion delay and the flash's 6-8 ns after it, and
+# the UART, GPIO and I2C inputs are asynchronous and synchronized inside.
+# The earliest change is taken as half the period after the edge; the setup
+# (max) delay stays base.sdc's.
+set_input_delay -min [expr $::env(CLOCK_PERIOD) * 0.5] -clock [get_clocks clk] [get_ports {uio_in[*] ui_in[*]}]
+
 # The flops (or latches: the breakpoint registers) driving the nets, through
 # buffers or inverters synthesis or the resizer put between (never through
 # other logic).  Several patterns may be given; the result is the union.
