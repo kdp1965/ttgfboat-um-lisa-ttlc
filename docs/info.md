@@ -1014,8 +1014,9 @@ cache and its PSRAM, the peripherals, both UARTs, the divider; `--rev3` selects 
     lisa_sim --rev3 --spi-flash image.bin ...    # a SPI NOR flash on the SPI master's CS0
 ```
 
-At the `lisa>` prompt: `load`, `step [N]`, `run`, `halt`, `continue`, `regs`, `mem addr [len]`, `bp` / `bpd` / `bpl`
-/ `bpc` (breakpoints), `dis [addr] [count]`, `trace on|off`, `uart text` (type into the program's UART), `help`.
+At the `lisa>` prompt: `load`, `step [N]`, `run`, `halt`, `continue`, `regs`, `mem addr [len]`, the breakpoint
+commands `bp`, `bpd`, `bpl` and `bpc`, `dis [addr] [count]`, `trace on|off`, `uart text` (type into the program's
+UART), `help`.
 With the `.cdb` from `--debug` it is a source-level debugger too: `break file:line` / `break func`, `list`,
 `next`, `into`, `finish`, `print expr` (`*`, `&`, `[i]`, `.m`, `->m`, globals, locals, code-space constants,
 peripheral registers), `locals`, `bt`.  `--icache` models the instruction fetch for performance studies and
