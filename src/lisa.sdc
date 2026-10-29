@@ -24,8 +24,12 @@ source $::env(SCRIPTS_DIR)/base.sdc
 # leaves with the same insertion delay and the flash's 6-8 ns after it, and
 # the UART, GPIO and I2C inputs are asynchronous and synchronized inside.
 # The earliest change is taken as half the period after the edge; the setup
-# (max) delay stays base.sdc's.
-set_input_delay -min [expr $::env(CLOCK_PERIOD) * 0.5] -clock [get_clocks clk] [get_ports {uio_in[*] ui_in[*]}]
+# (max) delay stays base.sdc's.  rst_n is in the set too: the three flops
+# that take it on their asynchronous reset pins are the reset synchronizer,
+# whose removal check against an external reset released 8 ns after a clock
+# edge is what the synchronizer exists to absorb (gf17: -0.61 ns at the slow
+# corner, the only hold violations left).
+set_input_delay -min [expr $::env(CLOCK_PERIOD) * 0.5] -clock [get_clocks clk] [get_ports {uio_in[*] ui_in[*] rst_n}]
 
 # The flops (or latches: the breakpoint registers) driving the nets, through
 # buffers or inverters synthesis or the resizer put between (never through
