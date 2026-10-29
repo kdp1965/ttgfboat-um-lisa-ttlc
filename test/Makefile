@@ -31,7 +31,7 @@ PROJECT_SOURCES += lisa_qqspi.v lisa_qspi_controller.v lisa_rx8n.v lisa_tx8n.v l
 PROJECT_SOURCES += debug_ctrl.v debug_autobaud.v debug_brg.v debug_regs.v
 PROJECT_SOURCES += data_cache8.v inst_stream.v
 PROJECT_SOURCES += i2c_master_byte_ctrl.v i2c_master_bit_ctrl.v lisa_uart.v
-PROJECT_SOURCES += ttlc_io.v ttlc_fetch.v
+PROJECT_SOURCES += ttlc_io.v ttlc_fetch.v mc14500b.v shift_reg_io.v
 
 ifneq ($(GATES),yes)
 
@@ -58,7 +58,17 @@ VERILOG_SOURCES += $(PWD)/gate_level_netlist.v
 # a locally hardened build with the RAM32 DFFRAM macro needs its netlist too:
 # make GATES=yes MACRO_NETLIST=../macros/RAM32.pnl.v
 VERILOG_SOURCES += $(MACRO_NETLIST)
+# tb.v's host-side UART and baud generator are the design's own modules
+# (lisa_tx8n, lisa_rx8n, debug_brg); the flat netlist does not define them
+VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,lisa_tx8n.v lisa_rx8n.v debug_brg.v)
+# the chip's clock, 45 ns: the cells' unit delays do not settle in the
+# RTL bench's 20 ns (CLK_HALF=<ns> overrides, for either build)
+CLK_HALF ?= 22.5
 
+endif
+
+ifneq ($(CLK_HALF),)
+PLUSARGS        += +CLK_HALF=$(CLK_HALF)
 endif
 
 # Allow sharing configuration between design and testbench via `include`:
@@ -81,6 +91,7 @@ TOPLEVEL = tb
 COCOTB_TEST_MODULES = test
 MODULE = test
 
+# make TTLC=1: the TTLC loopback through the testbench's I/O chains
 # make BANK=1: the bank registers (progs/bank.c)
 # make OVERRUN=1: the UART receive FIFO's overrun flag (progs/uartov.c)
 # A program from the SDCC test suite (or any Intel HEX / @addr / opcode-per-line
@@ -95,9 +106,14 @@ else ifneq ($(BANK),)
 PLUSARGS += +FIRMWARE=$(PWD)/progs/bank_test.hex +PROGRAM=bank_test.hex +BANK
 else ifneq ($(SPIM),)
 # the SPI master (RESPIN 29): progs/spi.c against the testbench's two
-# devices on the mux-2 pins (progs/spi_test.hex: spi at 0; the TTLC loopback
-# behind it at 0x10000 is for the sky130 chip's test on the TTLC's pins)
+# devices on the mux-2 pins, then on the TTLC's pins with the TTLC
+# running its loopback (progs/spi_test.hex: spi at 0, the loopback at 0x10000)
 PLUSARGS += +FIRMWARE=$(PWD)/progs/spi_test.hex +PROGRAM=spi_test.hex +SPIM
+else ifneq ($(TTLCIO),)
+# the TTLC's I/O from the core (RESPIN 30): progs/ttlcio.c with the ICU
+# halted (the chains are the core's), then with the ICU running its
+# loopback (progs/ttlcio_test.hex: ttlcio at 0, the loopback at 0x10000)
+PLUSARGS += +FIRMWARE=$(PWD)/progs/ttlcio_test.hex +PROGRAM=ttlcio_test.hex +TTLCIO
 else ifneq ($(TIMER3),)
 # Timer 3 (RESPIN 32): progs/timer3.c - the plain timer, compare, the
 # captures of tb.v's square wave, the vector-9 interrupt, PWM on uo[1] / uo[2]
@@ -124,6 +140,17 @@ else ifneq ($(WSDMA),)
 # the WS2812B driver's DMA (RESPIN 35): progs/wsdma.c - frames from the
 # PSRAM through the TTLC's fetch on uo[1] / uo[2], the cache on
 PLUSARGS += +FIRMWARE=$(PWD)/progs/wsdma.hex +PROGRAM=wsdma.hex +WSDMA
+else ifneq ($(TTLC),)
+# TTLC_IMAGE=<hex>: another flash image (the TTLC program at byte 0x10000);
+# TTLCTRACE=<clocks> logs the TTLC's fetch (SIM=icarus)
+TTLC_IMAGE ?= $(PWD)/progs/ttlc_test.hex
+PLUSARGS += +FIRMWARE=$(TTLC_IMAGE) +PROGRAM=$(notdir $(TTLC_IMAGE)) +TTLC
+ifneq ($(TTLCTRACE),)
+PLUSARGS += +TTLCTRACE=$(TTLCTRACE)
+endif
+ifneq ($(TTLCIN),)
+PLUSARGS += +TTLCIN=$(TTLCIN)
+endif
 else
 PLUSARGS += +FIRMWARE=$(PWD)/progs/hello.hex +PROGRAM=hello.hex +DEFAULT
 endif
@@ -199,3 +226,15 @@ include $(shell cocotb-config --makefiles)/Makefile.sim
 $(COCOTB_RESULTS_FILE): FORCE
 FORCE:
 .PHONY: FORCE
+
+# The RAM32 macro's netlist on its own (gl/tb_ram32.v: byte and word writes
+# read back; gl/tb_ram32b.v traces one byte's clock gate) - run it on every
+# macro build: the DFFRAM gf180 decoder typo (GF180.md) was only visible here
+# and at gate level.  MACRO_NETLIST=<pnl> picks another netlist.
+MACRO_NETLIST ?= ../macros/RAM32.pnl.v
+GF_CELLS = $(PDK_ROOT)/gf180mcuD/libs.ref/gf180mcu_fd_sc_mcu7t5v0/verilog
+macro-gl:
+	mkdir -p sim_build
+	iverilog -g2012 -o sim_build/tb_ram32.vvp -DFUNCTIONAL -DUSE_POWER_PINS -DSIM '-DUNIT_DELAY=#1' \
+	   $(GF_CELLS)/primitives.v $(GF_CELLS)/gf180mcu_fd_sc_mcu7t5v0.v $(MACRO_NETLIST) gl/tb_ram32.v
+	vvp -n sim_build/tb_ram32.vvp

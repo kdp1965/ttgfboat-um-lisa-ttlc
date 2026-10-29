@@ -58,7 +58,12 @@ module tb
    wire           spi_miso;           // the SPI devices' MISO (ui_in[2])
 
    reg            clk = 1'b0;
-   always #10 clk = ~clk;
+   // the clock: 20 ns unless +CLK_HALF=<ns> says otherwise (test/Makefile sets
+   // 22.5 - the GF180 chip's 45 ns - for the gate-level build, whose cells
+   // carry unit delays: at 20 ns the netlist's 30-level paths do not settle)
+   real clk_half = 10.0;
+   initial if ($value$plusargs("CLK_HALF=%f", clk_half)) ;
+   always #(clk_half) clk = ~clk;
 
    wire     [7:0] ui_in;
    wire     [7:0] uo_out;
@@ -90,12 +95,14 @@ module tb
    always @(posedge clk)
    begin
       st_clocks  <= st_clocks + 1;
+`ifndef GL_TEST                        // the RTL's internal signals: the counts stay 0 at gate level
       if (lisa.core_i_fetch & lisa.core_i_ready) st_insts <= st_insts + 1;
       if (lisa.core_i_fetch & !lisa.core_i_ready) st_wait <= st_wait + 1;
       st_ready_r <= lisa.i_lisa_qqspi.ready;
       st_state_r <= lisa.i_lisa_qqspi.state;
       if (lisa.i_lisa_qqspi.ready & !st_ready_r) st_words <= st_words + 1;
       if (st_state_r == 4'd0 && lisa.i_lisa_qqspi.state == 4'd1) st_xfers <= st_xfers + 1;
+`endif
    end
 
    // ==========================================================================
@@ -111,6 +118,7 @@ module tb
    // X lines (an interrupt entry) are written from reset, so the bank
    // switches before the trigger can be compared too.
    // ==========================================================================
+`ifndef GL_TEST                        // the trace reads the RTL's internal signals: not at gate level
    integer        tr_fd = 0;
    reg [1023:0]   tr_file;
    reg [31:0]     tr_pc = 32'hFFFF_FFFF, tr_cb = 32'hFFFF_FFFF, tr_count = 32'hFFFF_FFFF;
@@ -181,6 +189,8 @@ module tb
       end
    end
 
+`endif
+
    initial begin
      if ($test$plusargs("DUMP"))
      begin
@@ -193,11 +203,15 @@ module tb
    // ==========================================================================
    // instantiate the DUT
    // ==========================================================================
+`ifdef GL_TEST
+   supply1        gl_vpwr;
+   supply0        gl_vgnd;
+`endif
    tt_um_pettit_lisa lisa
    (
 `ifdef GL_TEST
-      .VPWR(1'b1),
-      .VGND(1'b0),
+      .VPWR(gl_vpwr),                  // the GF180 power pins are inout: a constant cannot drive them
+      .VGND(gl_vgnd),
 `endif
       .ui_in   ( ui_in    ),
       .uo_out  ( uo_out   ),
