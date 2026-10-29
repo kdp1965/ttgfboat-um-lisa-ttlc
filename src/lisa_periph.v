@@ -133,8 +133,6 @@ Address Map:
    0x4D:       WDT_KICK: 0xA5 written restarts the count; read: the ticks
    0x4E:       WDT_TIMEOUT: (TIMEOUT + 1) x 2^(16 + SCALE) clocks (reset 255)
    0x4F:       WDT_STAT: [0] WDRST, the last reset was the watchdog's (1 clears)
-               (the watchdog is not on the GF180 chip, WANT_WDT below: 0x4C-0x4F
-               read 0 and take no writes)
 
    TTLC I/O (RESPIN 30, lisa_ttlcio.v)
    ========
@@ -146,8 +144,9 @@ Address Map:
 
 ==========================================================================================
 */
-// `define WANT_WDT     // the watchdog (RESPIN 36, lisa_wdt.v): not on the GF180 chip (GF180.md, Ken
-                        // 2026-10-28, for the router) - 0x4C-0x4F read 0, wdt_reset is 0
+`define WANT_WDT        // the watchdog (RESPIN 36, lisa_wdt.v) - left out of gf8-gf20 for the router
+                        // (GF180.md), back since gf21 (Ken, 2026-10-29); without it 0x4C-0x4F read
+                        // 0 and wdt_reset is 0
 
 module lisa_periph
 (

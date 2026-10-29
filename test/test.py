@@ -448,15 +448,15 @@ async def test_wsdma(dut):
 @cocotb.test(skip=plusarg('MISC36') is None)
 async def test_misc36(dut):
     """+MISC36 (make MISC36=1): progs/misc36.c - RESPIN 36: the cycle
-    counter; the watchdog's registers reading 0 (no watchdog on the GF180
-    chip); the two PDM channels left at 64 and 192 (Timer 3's channels in
-    PDM mode) - their duty on uo[1] / uo[2] (mux 2) measured here: 25% and
-    75%"""
+    counter; the watchdog kept off by kicks, then firing (the program
+    restarts and finds WDRST); the two PDM channels left at 64 and 192,
+    (Timer 3's channels in PDM mode) - their duty on uo[1] / uo[2] (mux 2)
+    measured here: 25% and 75%"""
     lisa = await start(dut)
     await lisa.setup(cache=False, quad=True)
     await lisa.write_reg(0x1b, 0x0028)                               # uo[1], uo[2] to mux 2
     text = await lisa.run(timeout=1_500_000)
-    assert 'ALL PASSED' in text and 'FAIL' not in text, \
+    assert 'ALL PASSED' in text and 'FAIL' not in text and 'watchdog reset' in text, \
         'the RESPIN 36 test did not pass: %r' % text[-400:]
     h0, h1, c0 = int(dut.pwm_high0.value), int(dut.pwm_high1.value), int(dut.clocks.value)
     await ClockCycles(dut.clk, 25600)

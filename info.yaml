@@ -32,6 +32,7 @@ project:
     - "lisa_timer3.v"
     - "lisa_ws2812.v"
     - "lisa_cyccnt.v"
+    - "lisa_wdt.v"
     - "debug_ctrl.v"
     - "debug_autobaud.v"
     - "debug_brg.v"
