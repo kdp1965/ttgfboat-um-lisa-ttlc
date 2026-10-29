@@ -43,6 +43,8 @@ project:
     - "lisa_uart.v"
     - "ttlc_io.v"
     - "ttlc_fetch.v"
+    - "mc14500b.v"
+    - "shift_reg_io.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 pinout:

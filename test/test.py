@@ -89,8 +89,102 @@ async def test_uart_burst(dut):
     assert got == burst, 'echoed %r' % got
 
 
-@cocotb.test(skip=plusarg('DEFAULT') is not None or plusarg('BANK') is not None or plusarg('OVERRUN') is not None
-             or plusarg('SPIM') is not None or plusarg('TIMER3') is not None
+async def ttlc_loopback(dut, lisa):
+    """the TTLC program in the flash at 0x10000 copies the 48 inputs to the
+    48 outputs through the testbench's I/O chains; check seven patterns"""
+    await lisa.setup(cache=False, quad=True)
+    for a, v in ((0x1f, 0x0100), (0x1b, 0x3cff), (0x1c, 0x00a3)):   # TTLC base, uo_out to the TTLC, shift clock clk/4
+        await lisa.write_reg(a, v)
+    dut.ttlc_in.value = 0
+    dut.ttlc_mode.value = 1
+    await lisa.write_reg(0x40, 1)                                    # run
+    await ClockCycles(dut.clk, 20000)
+    st = await lisa.read_reg(0x40)
+    pc = await lisa.read_reg(0x41)
+    dut._log.info('TTLC status 0x%04x pc 0x%03x' % (st, pc))
+    assert st & 1, 'the TTLC is not running'
+    for pat in (0x123456789abc, 1, 0x800000000000, 0xaaaaaaaaaaaa, 0xffffffffffff, 0, 0x5a5a5a5a5a5a):
+        dut.ttlc_in.value = pat
+        await ClockCycles(dut.clk, 40000)
+        got = int(dut.ttlc_out.value)
+        dut._log.info('inputs %012x -> outputs %012x' % (pat, got))
+        assert got == pat, 'outputs %012x for inputs %012x' % (got, pat)
+    await lisa.write_reg(0x40, 0)
+
+
+@cocotb.test(skip=plusarg('TTLC') is None)
+async def test_ttlc(dut):
+    """the TTLC runs the loopback program (progs/ttlc/ttlc_loopback.asm, the
+    slot format): the 48 outputs follow the 48 inputs (TT07 took 17 samples
+    per scan, every input came back one position high)"""
+    lisa = await start(dut)
+    await ttlc_loopback(dut, lisa)
+
+
+@cocotb.test(skip=plusarg('TTLC') is None)
+async def test_ttlc_jump(dut):
+    """the loopback through two subroutines, a skz over a jmp and nopf
+    (progs/ttlc/ttlc_jump.asm, the image TTLC_IMAGE=progs/ttlc_jump_test.hex):
+    jmp / rtn / skz / nopf in the slot format land right, or the copy breaks.
+    The old RTL's jmp reloaded the PC on three clocks and pushed the stack
+    three times (nothing had run one: the elevator and the loopback have none)"""
+    if 'ttlc_jump' not in (plusarg('PROGRAM') or ''):
+        dut._log.info('skipped: not the ttlc_jump image')
+        return
+    lisa = await start(dut)
+    await ttlc_loopback(dut, lisa)
+
+
+@cocotb.test(skip=plusarg('TTLC') is None)
+async def test_ttlc_debug(dut):
+    """the TTLC's breakpoints halt before their instruction and the step bit
+    runs exactly one (TT07: a clock late, and the step bit did nothing)"""
+    if 'ttlc_jump' in (plusarg('PROGRAM') or ''):
+        dut._log.info('skipped: the breakpoint at 5 is for the loopback image')
+        return
+    lisa = await start(dut)
+    await lisa.setup(cache=False, quad=True)
+    for a, v in ((0x1f, 0x0100), (0x1b, 0x3cff), (0x1c, 0x00a3)):
+        await lisa.write_reg(a, v)
+    dut.ttlc_mode.value = 1
+    dut.ttlc_in.value = 0x0f0f0f0f0f0f
+    await lisa.write_reg(0x48, 0x4000 | 5)                          # a breakpoint at 5 (group 1 slot 1; bit 14 = valid)
+    await lisa.write_reg(0x40, 1)
+    await ClockCycles(dut.clk, 20000)
+    st, pc = await lisa.read_reg(0x40), await lisa.read_reg(0x41)
+    assert not (st & 1) and pc == 5, 'status 0x%04x pc %d: not halted at the breakpoint' % (st, pc)
+    await lisa.write_reg(0x40, 1)                                    # run on: the breakpoint is passed...
+    await ClockCycles(dut.clk, 20000)
+    st, pc = await lisa.read_reg(0x40), await lisa.read_reg(0x41)
+    assert not (st & 1) and pc == 5, 'status 0x%04x pc %d: not back at the breakpoint after a loop' % (st, pc)
+    await lisa.write_reg(0x48, 0)
+    for expect in (6, 7, 8):                                         # ... and the step bit: one instruction each
+        await lisa.write_reg(0x40, 2)
+        await ClockCycles(dut.clk, 2000)
+        st, pc = await lisa.read_reg(0x40), await lisa.read_reg(0x41)
+        assert not (st & 1) and pc == expect, 'status 0x%04x pc %d after a step, expected %d' % (st, pc, expect)
+    # step round the loop: the nopf at its end resets the PC under the step
+    # (TT07 lost the PC change of a stepped jmp / rtn / nopf)
+    last = 8
+    wrapped = False
+    for _ in range(300):                 # the loopback is 98 steps, the storage loopback 194
+        await lisa.write_reg(0x40, 2)
+        await ClockCycles(dut.clk, 2000)
+        pc = await lisa.read_reg(0x41)
+        if pc < last:
+            assert pc == 0, 'the nopf at %d landed on %d' % (last, pc)
+            wrapped = True
+            break
+        assert pc == last + 1, 'pc %d after a step from %d' % (pc, last)
+        last = pc
+    assert wrapped, 'no return to 0 within 300 steps'
+    await lisa.write_reg(0x40, 1)
+    await ClockCycles(dut.clk, 40000)
+    assert int(dut.ttlc_out.value) == 0x0f0f0f0f0f0f, 'the loopback did not resume'
+
+
+@cocotb.test(skip=plusarg('DEFAULT') is not None or plusarg('TTLC') is not None or plusarg('BANK') is not None or plusarg('OVERRUN') is not None
+             or plusarg('SPIM') is not None or plusarg('TTLCIO') is not None or plusarg('TIMER3') is not None
              or plusarg('WS2812') is not None or plusarg('WSDMA') is not None or plusarg('I2C') is not None
              or plusarg('MISC36') is not None or plusarg('DDRSWEEP') is not None)
 async def test_program(dut):
@@ -164,6 +258,105 @@ async def test_spi(dut):
     dut._log.info('device 0 took %d bytes, device 1 %d' % (c0, c1))
     assert 'ALL PASSED' in text, 'the SPI test did not pass: %r' % text[-300:]
     assert (c0, c1) == (19, 18), 'bytes taken %d / %d, expected 19 / 18' % (c0, c1)
+
+
+@cocotb.test(skip=plusarg('SPIM') is None)
+async def test_spi_ttlc(dut):
+    """+SPIM: the SPI master on the TTLC's pins (mux mode 3: SCLK uo[7],
+    MOSI / CS0 / CS1 on the 595 chains' data uo[0..2]) while the TTLC runs
+    its loopback: every transaction claims the pins.  The outputs never
+    leave the pattern (a scan inside a transaction would shift the SPI's
+    levels into the chains), no TTLC shift clock falls inside a transaction,
+    the program saw the TTLC wait, and the loopback still follows its
+    inputs after"""
+    lisa = await start(dut)
+    await lisa.setup(cache=False, quad=True)
+    for a, v in ((0x1f, 0x0100), (0x1b, 0xfcff), (0x1c, 0x00a3)):   # TTLC base, uo[0-3], [5-7] to select 3, shift clk/4
+        await lisa.write_reg(a, v)
+    pat = 0x123456789abc
+    dut.ttlc_in.value = pat
+    dut.ttlc_mode.value = 1
+    dut.spi_map.value = 2
+    dut.porta_in.value = 1
+    await lisa.write_reg(0x40, 1)                                    # the TTLC runs
+    await ClockCycles(dut.clk, 20000)
+    assert int(dut.ttlc_out.value) == pat, 'the loopback is not running'
+    differ = int(dut.ttlc_differ.value)
+    b0, b1 = int(dut.spi_count0.value), int(dut.spi_count1.value)   # the device models count from the start
+    text = await lisa.run(timeout=400_000)
+    differ = int(dut.ttlc_differ.value) - differ
+    c0, c1 = int(dut.spi_count0.value) - b0, int(dut.spi_count1.value) - b1
+    col = int(dut.spi_collide.value)
+    dut._log.info('device 0 took %d bytes, device 1 %d; %d TTLC clocks inside transactions' % (c0, c1, col))
+    assert 'ALL PASSED' in text, 'the SPI test did not pass: %r' % text[-300:]
+    assert differ == 0, 'the TTLC outputs left the inputs for %d clocks during the SPI transfers' % differ
+    assert col == 0, '%d TTLC shift clocks inside SPI transactions' % col
+    assert (c0, c1) == (91, 90), 'bytes taken %d / %d, expected 91 / 90' % (c0, c1)
+    # the TTLC still scans (the program has the UART now: no debugger reads)
+    for p in (0xaaaaaaaaaaaa, 0x5a5a5a5a5a5a):
+        dut.ttlc_in.value = p
+        await ClockCycles(dut.clk, 40000)
+        assert int(dut.ttlc_out.value) == p, 'outputs %012x for inputs %012x after the SPI' % (int(dut.ttlc_out.value), p)
+
+
+TTLCIO_INPUTS = 0x0123456789ab
+TTLCIO_OUT1 = 0x665544332211
+TTLCIO_OUT2 = 0xf00f5aa53cc3
+
+
+async def ttlcio_setup(dut, lisa, porta):
+    """mux mode 3 on the TTLC's pins (uo[0-3], [5-7]; uo[4] the UART),
+    the shift clock clk/4, the TTLC program at flash byte 0x10000, the
+    inputs on the 165 chains"""
+    await lisa.setup(cache=False, quad=True)
+    for a, v in ((0x1f, 0x0100), (0x1b, 0xfcff), (0x1c, 0x00a3)):
+        await lisa.write_reg(a, v)
+    dut.ttlc_in.value = TTLCIO_INPUTS
+    dut.ttlc_mode.value = 1
+    dut.porta_in.value = porta
+
+
+@cocotb.test(skip=plusarg('TTLCIO') is None)
+async def test_ttlcio(dut):
+    """+TTLCIO (make TTLCIO=1): progs/ttlcio.c with the ICU halted (the
+    reset state) - the core reads and writes the TTLC's I/O vector a byte at
+    a time and scans the chains itself: the inputs it captured are the
+    testbench's, and the outputs it left are on the 595 chains"""
+    lisa = await start(dut)
+    await ttlcio_setup(dut, lisa, 0)
+    text = await lisa.run(timeout=600_000)
+    assert 'ALL PASSED' in text, 'the TTLC I/O test did not pass: %r' % text[-300:]
+    out = int(dut.ttlc_out.value)
+    assert out == TTLCIO_OUT2, 'the chains hold %012x, the core wrote %012x' % (out, TTLCIO_OUT2)
+
+
+@cocotb.test(skip=plusarg('TTLCIO') is None)
+async def test_ttlcio_run(dut):
+    """+TTLCIO: progs/ttlcio.c with the ICU running its loopback - the core
+    watches the scans and the copied outputs, then holds the ICU with the
+    SPI master's claim, puts its own outputs on the chains with a scan of
+    its own (whenever the outputs are not the inputs they are the core's),
+    and after the release the loopback copies the inputs again"""
+    lisa = await start(dut)
+    await ttlcio_setup(dut, lisa, 1)
+    await lisa.write_reg(0x40, 1)                                    # the TTLC runs
+    await ClockCycles(dut.clk, 20000)
+    assert int(dut.ttlc_out.value) == TTLCIO_INPUTS, 'the loopback is not running'
+    differ = int(dut.ttlc_differ.value)
+    dut.ttlc_watch.value = TTLCIO_OUT1
+    match = int(dut.ttlc_match.value)
+    text = await lisa.run(timeout=800_000)
+    differ = int(dut.ttlc_differ.value) - differ
+    match = int(dut.ttlc_match.value) - match
+    dut._log.info('the outputs differed from the inputs for %d clocks, held OUT1 for %d' % (differ, match))
+    assert 'ALL PASSED' in text, 'the TTLC I/O test did not pass: %r' % text[-300:]
+    # whenever the outputs left the inputs they were the core's OUT1: put on
+    # the chains by its scan during the hold (the data pins the scan's, not
+    # the SPI master's), not by the ICU's held scan after the release only
+    assert differ > 0 and match == differ, \
+        'the outputs left the inputs for %d clocks, %d of them with the core\'s %012x' % (differ, match, TTLCIO_OUT1)
+    await ClockCycles(dut.clk, 20000)
+    assert int(dut.ttlc_out.value) == TTLCIO_INPUTS, 'the loopback did not resume: %012x' % int(dut.ttlc_out.value)
 
 
 @cocotb.test(skip=plusarg('TIMER3') is None)
@@ -379,3 +572,32 @@ async def test_bank(dut):
     text = await lisa.run(timeout=int(plusarg('TIMEOUT', 2_000_000)))
     assert 'ALL PASSED' in text, 'the bank test did not pass: %r' % text[-300:]
 
+
+@cocotb.test(skip=plusarg('TTLCTRACE') is None)
+async def test_ttlc_trace(dut):
+    """+TTLCTRACE[=clocks]: run the TTLC program in +FIRMWARE (at flash byte
+    0x10000) and log every clock the TTLC's PC, its instruction word and the
+    core's JMP / RTN change - for working out the fetch pipeline (icarus:
+    Verilator does not expose the internal signals)"""
+    lisa = await start(dut)
+    await lisa.setup(cache=False, quad=True)
+    for a, v in ((0x1f, 0x0100), (0x1b, 0x3cff), (0x1c, 0x00a3)):
+        await lisa.write_reg(a, v)
+    dut.ttlc_mode.value = 1
+    dut.ttlc_in.value = int(plusarg('TTLCIN', '0'), 0)
+    await lisa.write_reg(0x40, 1)
+    t = dut.lisa
+    last = None
+    for clk in range(int(plusarg('TTLCTRACE', '3000') or 3000)):
+        await RisingEdge(dut.clk)
+        try:
+            cur = (int(t.mc14500_pc.value), int(t.ttlc_inst.value), int(t.ttlc_i_ready.value),
+                   int(t.i_mc14500b.r_inst.value), int(t.JMP.value), int(t.RTN.value), int(t.FLAG_F.value),
+                   int(t.mc14500_run.value), int(t.mc14500_stack[0].value))
+        except ValueError:
+            continue
+        if cur != last:
+            dut._log.info('clk %5d pc %04x inst %04x rdy %d r_inst %x jmp %d rtn %d F %d run %d stk0 %04x' % ((clk,) + cur))
+            last = cur
+    out = int(dut.ttlc_out.value)
+    dut._log.info('outputs %012x' % out)

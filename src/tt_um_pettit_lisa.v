@@ -65,11 +65,11 @@ SUCH DAMAGE.
 // ==============================================================================
 
 `define WANT_UART2
-// `define WANT_TTLC    // the Tiny Tapeout Logic Controller: not on the GF180 chip (GF180.md) - the
-                        // MC14500B core, the 74HC595 / 74HC165 scan chains and their interlock with
-                        // the SPI master go; ttlc_io's 48 output flops, ttlc_fetch in its DMA mode and
-                        // the core's TIDX / TDATA window stay for the WS2812B driver (its pixels and
-                        // its frames from the PSRAM)
+`define WANT_TTLC       // the Tiny Tapeout Logic Controller (GF180.md: left out of gf5-gf18, back
+                        // with 32 storage bits since gf19) - the MC14500B core, the 74HC595 / 74HC165
+                        // scan chains and their interlock with the SPI master.  Without it ttlc_io's 48
+                        // output flops, ttlc_fetch in its DMA mode and the core's TIDX / TDATA window
+                        // stay for the WS2812B driver (its pixels and its frames from the PSRAM)
 
 module tt_um_pettit_lisa
 (

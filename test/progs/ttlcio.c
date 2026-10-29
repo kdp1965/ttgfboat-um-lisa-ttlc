@@ -141,12 +141,14 @@ void main(void)
       TIDX = 16;
       CHECK(5, TDATA == 0x5a);                 /* port_in untouched by the write past 15 */
 
-      wr6(18, OUT1);                           /* 18-19 ignore writes, 20-23 the storage's bits 32-63 */
+      wr6(18, OUT1);                           /* 18-19 ignore writes; 20-23 would be the storage's bits
+                                                  32-63, which the GF180 chip does not have (ttlc_io.v
+                                                  TTLC_STORAGE64): they read 0 and ignore writes too */
       TIDX = 18;
       a = TDATA; b = TDATA;
       rd6(18);
       CHECK(0x0d, a == 0 && b == 0 && buf[0] == 0 && buf[1] == 0 &&
-            buf[2] == OUT1[2] && buf[3] == OUT1[3] && buf[4] == OUT1[4] && buf[5] == OUT1[5]);
+            buf[2] == 0 && buf[3] == 0 && buf[4] == 0 && buf[5] == 0);
       TIDX = 12;
       CHECK(0x0e, TDATA == OUT2[0]);           /* the low storage untouched by the high */
 

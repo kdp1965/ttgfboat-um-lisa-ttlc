@@ -28,8 +28,8 @@ SUCH DAMAGE.
 ================================================================================
 */
 
-// `define WANT_TTLC    // the Tiny Tapeout Logic Controller: not on the GF180 chip (GF180.md,
-                        // tt_um_pettit_lisa.v has the same define).  Without it the ICU's debug
+`define WANT_TTLC       // the Tiny Tapeout Logic Controller (GF180.md; tt_um_pettit_lisa.v and
+                        // ttlc_io.v have the same define).  Without it the ICU's debug
                         // registers go: 0x40 run control, 0x41 PC, 0x48-0x4a the breakpoints (45
                         // latches), 0x1f the TTLC base (16 latches) and 0x15's upper bits (the
                         // TTLC fetch's select: the fetch is the WS2812B DMA's and uses lisa2's).

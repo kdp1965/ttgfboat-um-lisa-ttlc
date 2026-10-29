@@ -1,0 +1,107 @@
+{
+  "//": "gf19 (Ken, 2026-10-28): the TTLC back (WANT_TTLC, 32 storage bits) and the RAM32 at gf6's x 740.77 (right edge 1416.69, 16.9 um short of the core's right edge): gf11's channels, keepouts and the Metal4 obstruction moved with it (+38.87); the right channel is the strip to the core edge. On top of trial_repair_grt0.json.",
+  "MAX_FANOUT_CONSTRAINT": 20,
+  "MAX_TRANSITION_CONSTRAINT": 5,
+  "GRT_ADJUSTMENT": 0.0,
+  "GRT_LAYER_ADJUSTMENTS": [
+    0,
+    0.3,
+    0,
+    0.3,
+    0
+  ],
+  "GRT_OVERFLOW_ITERS": 150,
+  "FP_OBSTRUCTIONS": [
+    [
+      720.77,
+      0.0,
+      740.77,
+      196.4
+    ],
+    [
+      720.77,
+      176.4,
+      1433.6,
+      196.4
+    ],
+    [
+      1416.69,
+      0.0,
+      1433.6,
+      196.4
+    ]
+  ],
+  "PL_SOFT_OBSTRUCTIONS": [
+    [
+      680.77,
+      196.4,
+      800.77,
+      266.4
+    ],
+    [
+      680.77,
+      100.0,
+      720.77,
+      196.4
+    ],
+    [
+      1376.69,
+      196.4,
+      1433.6,
+      266.4
+    ]
+  ],
+  "ROUTING_OBSTRUCTIONS": [
+    [
+      "Metal4",
+      740.77,
+      3.92,
+      1416.69,
+      176.4
+    ]
+  ],
+  "MACROS": {
+    "RAM32": {
+      "instances": {
+        "ram1": {
+          "location": [
+            740.77,
+            3.92
+          ],
+          "orientation": "N"
+        }
+      },
+      "gds": [
+        "dir::../macros/RAM32.gds"
+      ],
+      "lef": [
+        "dir::../macros/RAM32.lef"
+      ],
+      "nl": [
+        "dir::../macros/RAM32.nl.v"
+      ],
+      "spef": {
+        "min_*": [
+          "dir::../macros/RAM32.min_.spef"
+        ],
+        "nom_*": [
+          "dir::../macros/RAM32.nom_.spef"
+        ],
+        "max_*": [
+          "dir::../macros/RAM32.max_.spef"
+        ]
+      },
+      "lib": {
+        "nom_tt_025C_3v30": "dir::../macros/RAM32.lib/nom_tt_025C_3v30/RAM32__nom_tt_025C_3v30.lib",
+        "nom_ss_125C_3v00": "dir::../macros/RAM32.lib/nom_ss_125C_3v00/RAM32__nom_ss_125C_3v00.lib",
+        "nom_ff_n40C_3v60": "dir::../macros/RAM32.lib/nom_ff_n40C_3v60/RAM32__nom_ff_n40C_3v60.lib",
+        "min_tt_025C_3v30": "dir::../macros/RAM32.lib/min_tt_025C_3v30/RAM32__min_tt_025C_3v30.lib",
+        "min_ss_125C_3v00": "dir::../macros/RAM32.lib/min_ss_125C_3v00/RAM32__min_ss_125C_3v00.lib",
+        "min_ff_n40C_3v60": "dir::../macros/RAM32.lib/min_ff_n40C_3v60/RAM32__min_ff_n40C_3v60.lib",
+        "max_tt_025C_3v30": "dir::../macros/RAM32.lib/max_tt_025C_3v30/RAM32__max_tt_025C_3v30.lib",
+        "max_ss_125C_3v00": "dir::../macros/RAM32.lib/max_ss_125C_3v00/RAM32__max_ss_125C_3v00.lib",
+        "max_ff_n40C_3v60": "dir::../macros/RAM32.lib/max_ff_n40C_3v60/RAM32__max_ff_n40C_3v60.lib"
+      }
+    }
+  }
+}

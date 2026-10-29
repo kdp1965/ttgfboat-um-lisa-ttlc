@@ -28,12 +28,15 @@ SUCH DAMAGE.
 ==============================================================================
 */
 
-// `define WANT_TTLC    // the Tiny Tapeout Logic Controller: not on the GF180 chip (GF180.md,
-                        // tt_um_pettit_lisa.v has the same define): the 64-bit storage goes with
+`define WANT_TTLC       // the Tiny Tapeout Logic Controller (GF180.md; tt_um_pettit_lisa.v and
+                        // debug_regs.v have the same define).  Without it the storage goes with
                         // the ICU - the core wrote and read it back through TIDX / TDATA (bytes
                         // 12-15, 20-23) so constants alone would not remove it; those bytes read
                         // 0, Port D to LISA reads 0 and the TTLC interrupt never fires.  The 48
                         // output flops stay: the WS2812B driver's pixel store
+// `define TTLC_STORAGE64  // the sky130 chips' 64 storage bits; the GF180 chip has 32 (bits
+                        // 32-63 read 0 and writes to them are dropped - the ICU's at 160-191 and
+                        // the core's TDATA bytes 20-23)
 
 module ttlc_io
 (
@@ -65,7 +68,13 @@ module ttlc_io
    // since RESPIN 31 - bits 0-31 at addresses 96-127 as before, bits 32-63
    // at 160-191 (a block of 32 above the constants: one compare decodes it)
 `ifdef WANT_TTLC
-   reg  [63:0]   temp_storage;
+   reg  [31:0]   stor_lo;                 // bits 0-31
+ `ifdef TTLC_STORAGE64
+   reg  [31:0]   stor_hi;                 // bits 32-63
+ `else
+   wire [31:0]   stor_hi = 32'h0;         // 32 storage bits on this chip
+ `endif
+   wire [63:0]   temp_storage = {stor_hi, stor_lo};
 `else
    wire [63:0]   temp_storage = 64'h0;
 `endif
@@ -98,7 +107,10 @@ module ttlc_io
       begin
          // Reset temporary storage and output registers when RST is high
 `ifdef WANT_TTLC
-         temp_storage <= 64'h0;
+         stor_lo <= 32'h0;
+ `ifdef TTLC_STORAGE64
+         stor_hi <= 32'h0;
+ `endif
 `endif
          output_pins <= 48'h0;
       end
@@ -110,9 +122,11 @@ module ttlc_io
             output_pins[{lisa_idx[2:0], 3'b000} +: 8] <= lisa_wdata;
 `ifdef WANT_TTLC
          if (lisa_we && lisa_idx[4:2] == 3'b011)       // 12-15: storage 0-31
-            temp_storage[{1'b0, lisa_idx[1:0], 3'b000} +: 8] <= lisa_wdata;
+            stor_lo[{lisa_idx[1:0], 3'b000} +: 8] <= lisa_wdata;
+ `ifdef TTLC_STORAGE64
          if (lisa_we && lisa_idx[4:2] == 3'b101)       // 20-23: storage 32-63
-            temp_storage[{1'b1, lisa_idx[1:0], 3'b000} +: 8] <= lisa_wdata;
+            stor_hi[{lisa_idx[1:0], 3'b000} +: 8] <= lisa_wdata;
+ `endif
 `endif
 
          if (mem_write)
@@ -126,9 +140,11 @@ module ttlc_io
             // 32-63 (until RESPIN 31 address[6] & address[5], which also
             // took 224-255 as aliases of 96-127)
             else if (address[7:5] == 3'b011)
-               temp_storage[{1'b0, address[4:0]}] <= data_in;
+               stor_lo[address[4:0]] <= data_in;
+ `ifdef TTLC_STORAGE64
             else if (address[7:5] == 3'b101)
-               temp_storage[{1'b1, address[4:0]}] <= data_in;
+               stor_hi[address[4:0]] <= data_in;
+ `endif
 `endif
          end
       end
