@@ -1,17 +1,17 @@
 ## What is LISA with TTLC?
 
-(On the GF180 chip: LISA without the BF16 unit, and with the TTLC's storage at 32 bits instead of 64, see the notes
-in those sections.  Its clock is 45 ns, 22.2 MHz: the layout meets that at the typical corners with 0.4-2.5 ns to
-spare, and the fast corner at 40 ns; at the slow corner, 125 C and 3.0 V, the single-cycle data read and the RAM
-write enable need about 88 ns, so a chip that hot and that low on supply runs at 11 MHz.  The autobaud on the debug UART locks at any rate down to 32 clocks a
-bit, 460800 baud at 22 MHz, so a chip that runs slower is still reachable.)
-
 LISA is a Microcontroller built around a custom 8-Bit Little ISA (LISA)
 microprocessor core.  It includes several standard peripherals that
 would be found on commercial microcontrollers including timers, GPIO,
 UARTs and I2C. TTLC is a Programmable Logic Controller for Tiny Tapeout
 (TTLC) build around a functional equivalent of a Motorola mc1500b system
 controller.
+
+LISA runs from a 45 ns clock (22.2 MHz).  At the slow corner, 125 C and a 3.0 V supply, the single-cycle data
+read and the RAM write enable need about 85 ns, so a part that hot and that low on supply runs at 11 MHz; the
+autobaud on the debug UART locks at any rate down to 32 clocks a bit (460800 baud at 22 MHz), so a part clocked
+slower is still reachable.
+
 The following is a block diagram of the design:
 
 ![](block_diag.png)
@@ -39,17 +39,17 @@ The following is a block diagram of the design:
       * Debug interface for direct memory access
       * Instruction fetch (LISA and MC14500B)
       * Data fetch
+      * WS2812 pixel data "DMA" fetch (shared with TTLC instruction)
       * Quad or Single SPI.  Hereafter called QSPI, but supports either.
    - Onboard 128 Byte RAM for DATA / DATA CACHE
    - Data bus CACHE controller with 8 16-byte CACHE lines
    - Streaming QSPI instruction fetch controller
    - Instruction CACHE with a single 8-instruction CACHE line for small loops
    - Two 16-bit programmable timers (with pre-divide)
-   - Timer 3: a 16-bit timer with two PWM outputs and two input captures
+   - Timer 3: a 16-bit timer with two PWM outputs, two input captures and PDM output
    - WS2812B (NeoPixel) LED string driver on up to five pins, using the TTLC's output flops as its pixel buffer
    - Debug UART available to LISA core also
-   - Dedicated UART2 that is not shared with the debug interface (on GF180 without its own autobaud: it runs at
-     the generator's reset period, 416 clocks, until the program writes the divisor at peripheral 0x1E)
+   - Dedicated UART2 that is not shared with the debug interface
    - 8-bit Input port (PORTA)
    - 8-bit Output port (PORTB)
    - 4-bit BIDIR port (PORTC)
@@ -59,7 +59,7 @@ The following is a block diagram of the design:
    - Hardware 16/8 or 16/16 integer divider
    - Programmable I/O mux for maximum flexibility of I/O usage.
    - TTLC 48-Outputs plus 48-Inputs via external 74HC595 / 74HC165 chips
-   - TTLC 64-Bit internal storage plus 16 bit I/O to LISA (8 each direction) (32 storage bits on the GF180 chip)
+   - TTLC 32-Bit internal storage plus 16 bit I/O to LISA (8 each direction)
    - TTLC I/O readable / writable by LISA as bytes, with LISA-started I/O scans
 
 A 32x32 1RW [DFFRAM](https://github.com/AUCOHL/DFFRAM) macro implements a 128 byte RAM module.
@@ -82,8 +82,7 @@ The RX/TX pair port is auto-detected after reset by the autobaud circuit, and th
 configured manually or auto detected by the autobaud module.  After reset, the ui_in[7] pin is sampled to determine
 the baud rate selection mode.  If this input pin is HIGH, then autobaud is disabled and ui_in[6:0] is sampled as
 the UART baud divider and written to the Baud Rate Generator (BRG).  The value of this divider should be: clk_freq / baud_rate / 8 - 1.
-Due to last minute additions of complex floating point operations, and only 2 hours left on the count-down clock, the timing
-was relaxed to 20MHz input clock max.  So for a 20MHz clock and 115200 baud, the b_div[6:0] value would be 42 (for instance).
+At the 22.2 MHz clock and 115200 baud the value is 23 (22222222 / 115200 / 8 - 1 = 23.1).
 
 If the ui_in[7] pin is sampled LOW, then the autobaud module will monitor all three potential RX input pins for LINEFEED
 (ASCII 0x0A) code to detect baud rate and set the b_div value automatially.  It monitors bit transistions and searches for three
@@ -123,20 +122,20 @@ commands.  The individual register details will be described in the sections to 
  | 0x03 | LISA Stack Pointer (SP) LSW  | 0x1c | UIO mux, clk_div, psram_mod  |   
  | 0x04 | LISA Return Address (RA) LSW | 0x1d | CACHE control                |   
  | 0x05 | LISA Index Register (IX) LSW | 0x1e | QSPI edge / SCLK speed       |   
- | 0x06 | LISA Data bus                | 0x1f | MC14500b Base Address (not on GF180) |   
+ | 0x06 | LISA Data bus                | 0x1f | MC14500b Base Address        |   
  | 0x07 | LISA Data bus address LSW    | 0x20 | Debug QSPI Read / Write      |   
  | 0x08 | LISA Breakpoint 1            | 0x21 | Debug QSPI custom command    |   
  | 0x09 | LISA Breakpoint 2            | 0x22 | Debug read SPI status reg    |   
- | 0x0a | LISA Breakpoint 3            | 0x30 | Floating point reg f0        |   
- | 0x0b | LISA Breakpoint 4            | 0x31 | Floating point reg f1        |   
- | 0x0c | LISA Breakpoint 5            | 0x32 | Floating point reg f2        |   
- | 0x0d | LISA Breakpoint 6            | 0x33 | Floating point reg f3        |   
- | 0x0f | LISA Current Opcode Value    | 0x34 | Floating point reg facc      |     
+ | 0x0a | LISA Breakpoint 3            | 0x30 | Reserved                     |   
+ | 0x0b | LISA Breakpoint 4            | 0x31 | Reserved                     |   
+ | 0x0c | LISA Breakpoint 5            | 0x32 | Reserved                     |   
+ | 0x0d | LISA Breakpoint 6            | 0x33 | Reserved                     |   
+ | 0x0f | LISA Current Opcode Value    | 0x34 | Reserved                     |     
  | 0x10 | Debug QSPI Address (LSB16)   | 0x38 | LISA IX_COND, IX MSB         |     
  | 0x11 | Debug QSPI Address (MSB8)    | 0x39 | LISA SP MSB                  |     
  | 0x12 | LISA1 QSPI base address      | 0x3a | LISA RX_COND, RA MSB         |     
  | 0x13 | LISA2 QSPI base address      | 0x3c | LISA Data bus addr MSB       |     
- | 0x14 | LISA1 QSPI CE select         | 0x40 | MC14500B Run Control (0x40-0x4a not on GF180) |     
+ | 0x14 | LISA1 QSPI CE select         | 0x40 | MC14500B Run Control         |     
  | 0x15 | LISA2 QSPI CE select         | 0x41 | MC14500B Program Counter     |     
  | 0x16 | Debug QSPI CE select         | 0x48 | MC14500B Breakpoint 1        |     
  | 0x17 | QSPI Mode (QUAD, flash, 16b, DDR) | 0x49 | MC14500B Breakpoint 2        |     
@@ -229,10 +228,9 @@ resistor as indicated to allow CE updates if the FLASH/SRAM is driving DQ0/DQ1. 
 This leaves uio[4]/uio[5] available for use as either UART or I2C.
 
 The latch timing: when a chip select changes, uio[0] goes high at that rising clock edge for one clock, and
-uio[1]/uio[2] carry CE0/CE1 from that edge until the falling edge half a clock after uio[0] drops - so at 50 MHz
-a 20 ns latch-enable pulse, 20 ns of setup and 10 ns of hold before the pins skew through the Tiny Tapeout mux
-and pads.  A 3.3 V LVC / AHC transparent latch (74LVC1G373, 74LVC573A, 74AHC373) has ample margin; a 74HC75 at
-3.3 V or a 5 V 7475 does not.  Keep the DQ0/DQ1 series resistors small (100-220 ohm): with the parts' input
+uio[1]/uio[2] carry CE0/CE1 from that edge until the falling edge half a clock after uio[0] drops - so at 22.2 MHz
+a 45 ns latch-enable pulse, 45 ns of setup and 22 ns of hold before the pins skew through the Tiny Tapeout mux
+and pads.  A 3.3 V LVC / AHC transparent latch (74LVC1G373, 74LVC573A, 74AHC373) has ample margin.  Keep the DQ0/DQ1 series resistors small (100-220 ohm): with the parts' input
 capacitance they delay every data bit.  The first command bit follows half a clock before SCLK's first rising
 edge.
 
@@ -326,8 +324,8 @@ Below is a simplified block diagram of the LISA processor core.  It uses an 8-bi
 its operations with the 2nd argument predominately coming from either immediate data in the instruction
 word or from a memory location addressed by either the Stack Pointer (SP) or Index Register (IX).
 
-There are also instructions that work on the 15-bit registers PC, SP, IX and RA (Return Address).  As
-well as floating point operations. These will be covered in the sections to follow.
+There are also instructions that work on the 15-bit registers PC, SP, IX and RA (Return Address).  These
+will be covered in the sections to follow.
 
 ![](lisa_arch.png)
 
@@ -338,7 +336,7 @@ include the following:
 
  | Mode     | Data                 | Description                                       |
  | -------- | -------------------- | ------------------------------------------------- |
- | Register | Rx[n -: 8]           | Transfers between registers (ix, ra, facc, etc.). |
+ | Register | Rx[n -: 8]           | Transfers between registers (ix, ra, sp, etc.).   |
  | Direct   | inst[n:0]            | N-bit data stored in the instruction word.        |
  | NextOp   | (inst+1)[14:0]       | Data stored in the NEXT instruction word.         |
  | Indirect | mem[inst[n:0]]       | Address of the data is in the instruction word.   |
@@ -604,89 +602,13 @@ opcodes for things like setting arithemetic mode, complimenting the C flag, etc.
  | txa     | acc <= IX[L]  | 1010_0000_0001_00xx | Transfer IX[7:0] to acc   |
  | txau    | acc <= IX[H]  | 1010_0000_0001_10xx | Transfer IX[14:0] to acc  |
 
-### Floating Point (BF16) Operations
+### Floating Point Opcodes
 
-**Not on the GF180 chip.**  The sky130 LISA chips have the BF16 unit this section describes; on GF180
-it is compiled out (its 114K um2 would not fit the tile with the rest, GF180.md), and the BF16 opcodes
-below execute as nops.  The section is kept for the instruction set.
-
-LISA has a small hardware floating point unit that works on Brain Float 16 (BF16) numbers.  BF16 is simply
-the upper 16 bits of an IEEE-754 32-bit float ... 1 sign bit, 8 exponent bits and 7 fraction bits.  So it
-has the same range as a regular C float (about 1e-38 to 3e38), just with fewer digits of precision (2 to 3
-decimal digits), and converting to / from a 32-bit float is just dropping / adding the lower 16 bits.
-
-The FPU has five 16-bit registers:
-
-   - facc: the floating point accumulator.  Every operation leaves its result here.
-   - f0 - f3: four floating point registers used as the 2nd operand (selected by the 'ff' bits in the opcode).
-
-There are no load / store opcodes for the floating point registers.  Instead, data gets in and out through
-the 8-bit accumulator one byte at a time using 'taf' (A to facc) and 'tfa' (facc to A), and the
-f0 - f3 registers are loaded by swapping them with facc using 'fswap'.  So to multiply two numbers
-the code loads the first one into facc, swaps it into f0, loads the second into facc and then does the
-multiply:
-
-```
-    lda    a_lo        ; First operand to f0
-    taf    0
-    lda    a_hi
-    taf    1
-    fswap  f0
-    lda    b_lo        ; Second operand to facc
-    taf    0
-    lda    b_hi
-    taf    1
-    fmul   f0          ; facc <= facc * f0
-    tfa    0           ; Read the result back
-    sta    r_lo
-    tfa    1
-    sta    r_hi
-```
-
-All of the floating point opcodes are predicated by the cond latch just like the other opcodes, and
-they all complete in a single instruction cycle except for 'fdiv', which holds the processor for the
-few clocks the divider takes.  The amode register (see 'The Control Registers') controls two things:
-
-   - amode[1]: Selects signed (1) or unsigned (0) 16-bit integers for 'itof' and 'ftoi'.
-   - amode[2]: Selects round toward zero (1) or round to nearest even (0) for 'fadd' and 'fdiv'.
-
- | Opcode  | Operation        | Encoding            | Description                        |
- | ------- | ---------------- | ------------------- | ---------------------------------- |
- | taf     | facc[h] <= A     | 1010_0001_1110_001h | Load half of facc (h=1 upper) from A |
- | tfa     | A <= facc[h]     | 1010_0001_1110_000h | Load A from half of facc (h=1 upper) |
- | fswap   | facc <=> fx      | 1010_0001_1111_00ff | Exchange facc with f0 - f3         |
- | fneg    | fx <= -fx        | 1010_0001_1110_11ff | Negate f0 - f3 (flips the sign bit)|
- | fadd    | facc += fx       | 1010_0001_1110_10ff | Add fx to facc                     |
- | fmul    | facc *= fx       | 1010_0001_1110_01ff | Multiply facc by fx                |
- | fdiv    | facc /= fx       | 1010_0001_1111_10ff | Divide facc by fx, C=1 if valid    |
- | fcmp    | C,Z <= facc ? fx | 1010_0001_1111_01ff | Compare facc with fx               |
- | itof    | facc <= float(facc) | 1010_0011_0010_0000 | Convert 16-bit integer to BF16  |
- | ftoi    | facc <= int(facc)   | 1010_0011_0010_0001 | Convert BF16 to 16-bit integer  |
- | fclr    | facc <= 0        | 1010_0011_0010_0010 | Clear facc                         |
-
-Subtraction is done with 'fneg' followed by 'fadd'.  Note that 'fneg' works on the fx register, not facc, so
-the value being subtracted is the one in f0 - f3.  A few details of the individual operations:
-
-   - fadd: Rounds per amode[2] and handles subnormal (denormal) numbers.
-   - fmul: Truncates the product (no rounding).  Subnormal inputs and results are flushed to zero.
-   - fdiv: Uses a two-step Goldschmidt iteration from a small reciprocal table and rounds per amode[2].  The
-     result can be off by one in the last bit now and then.  The C flag is set when the result is valid and
-     cleared for the infinity / NaN / divide by zero cases.
-   - fcmp: Z is set when the two values have the same bit pattern (so -0 and +0 compare unequal).  C is set
-     when facc > fx, with the signs taken into account.  The 'if' opcode can then be used to branch on the result.
-   - itof: Converts the 16-bit integer in facc (signed or unsigned per amode[1]), rounding half up.
-   - ftoi: Converts facc to a 16-bit integer in facc, truncating toward zero.  Values that are too big
-     saturate (65535 unsigned, 32767 / -32768 signed), and a negative value gives 0 in unsigned mode.
-
-To convert an integer, put it in facc with 'taf' (low byte, then high byte), do 'itof' or 'ftoi', and read
-the result back with 'tfa'.  The facc and f0 - f3 registers can also be read through the debug interface
-(registers 0x30 - 0x34), and they are all cleared to zero at reset.
+This chip has no floating point unit.  The opcodes 1010_0001_1110_xxxx and 1010_0001_1111_xxxx (taf, tfa,
+fswap, fneg, fadd, fmul, fdiv, fcmp) and 1010_0011_0010_00xx (itof, ftoi, fclr) are reserved: they execute as
+no-ops, and the debug registers 0x30 - 0x34 are reserved.
 
 ## The Tiny Tapeout Logic Controller (TTLC)
-
-**On the GF180 chip with 32 storage bits** (GF180.md): everything in this section applies, except that the
-storage is bits 0-31 only - the ICU's addresses 160-191 and the TTLC I/O window's TDATA bytes 20-23 (the
-sky130 chips' bits 32-63) read 0 and ignore writes.
 
 The second subsystem within this design is a small PLC type circuit.  It is architected around a 1-bit processor from 1977
 designed by Motorola ... the MC14500B Industrial Control Unit (ICU).  The TTLC wraps the ICU "processor" with an instruction
@@ -704,7 +626,7 @@ takes care of this.
 The I/O subsystem uses an 8-bit address and supports the following:
 
    - 48-Outputs plus 48-Inputs via external 74HC595 / 74HC165 chips
-   - 64-Bit internal storage
+   - 32-Bit internal storage
    - 16 bit I/O to/from LISA (8 each direction)
    - Ability to send interrupt to LISA
    - Constant zero / one bits 
@@ -720,7 +642,7 @@ The 8-bit address selects one bit of the I/O space:
  | 136     | RR (the result register)                                   |
  | 137     | Constant 0                                                 |
  | 138     | Constant 1                                                 |
- | 160-191 | Internal storage bits 32-63                                |
+ | 160-191 | Reserved (read 0, writes ignored)                          |
 
 The rest (139-159 and 192-255) read as 0.
 
@@ -738,13 +660,13 @@ at address zero until the I/O transaction is complete.
 LISA can also read and write the TTLC's I/O directly, so it can either monitor the PLC while it runs, or use the
 48 inputs and 48 outputs of the 74HC165 / 74HC595 chains as its own peripheral when the MC14500B isn't running
 (it is halted at reset until the Debug interface starts it).  The TTLC's whole I/O space (the 48 outputs, 48
-inputs, 64 internal storage bits, the 8 bits from LISA, RR and the constants) is presented to LISA as 24 bytes
+inputs, 32 internal storage bits, the 8 bits from LISA, RR and the constants) is presented to LISA as 24 bytes
 through three peripheral registers:
 
  | ADDR | Register | Description                                                                      |
  | ---- | -------- | -------------------------------------------------------------------------------- |
  | 0x2C | TIDX     | Byte index, 0-23                                                                 |
- | 0x2D | TDATA    | Read: byte TIDX.  Write: byte TIDX of the outputs (0-5) or storage (12-15, 20-23).  TIDX auto-increments |
+ | 0x2D | TDATA    | Read: byte TIDX.  Write: byte TIDX of the outputs (0-5) or storage (12-15).  TIDX auto-increments |
  | 0x2E | TCTRL    | Write: [0] START a scan.  Read: [0] BUSY, [1] DONE, [2] PEND, [3] TTLC_WAIT, [4] OWNED |
 
  | Byte  | TTLC Addresses | Contents                           |
@@ -755,7 +677,7 @@ through three peripheral registers:
  | 16    | 128-135        | The 8 bits from LISA (Port E)       |
  | 17    | 136-138        | RR, constant 0, constant 1          |
  | 18-19 | 144-159        | Always 0                            |
- | 20-23 | 160-191        | Internal storage bits 32-63         |
+ | 20-23 | 160-191        | Reserved (read 0, writes ignored)   |
 
 Reading never disturbs the MC14500B ... LISA has its own read path to the I/O.  The inputs only change at the end
 of an I/O scan, and the DONE bit (set when a scan ends, cleared when TCTRL is read) lets the code tell if a scan
@@ -839,7 +761,7 @@ The SCL frequency is set by the prescale register and must be programmed while E
     prescale = clk / (5 * SCL) - 1
 ```
 
-So for a 50 MHz clock, 100 kHz SCL is a prescale of 99 (0x63) and 400 kHz SCL is a prescale of 24 (0x18).
+So for the 22.2 MHz clock, 100 kHz SCL is a prescale of 43 (0x2B) and 400 kHz SCL is a prescale of 10 (0x0A).
 
 Each byte on the bus is one write to the CMD register.  The command bits are:
 
@@ -864,7 +786,7 @@ IACK to clear the request.  Without interrupts, the code simply polls TIP after 
 typical write to a device (such as a PCF8574 I2C backpack on a character LCD at address 0x27) is:
 
 ```
-    PRE_LO = 99;  PRE_HI = 0;          // 100 kHz at 50 MHz
+    PRE_LO = 43;  PRE_HI = 0;          // 100 kHz at 22.2 MHz
     CTRL   = 0x01;                     // Enable the core
 
     TX  = (0x27 << 1) | 0;             // Slave address, W
@@ -920,7 +842,7 @@ simply a periodic timer with an overflow interrupt.  It uses 16 peripheral regis
 
 The capture edge selects are 0 = off, 1 = rising, 2 = falling and 3 = both edges.  The PWM duty cycle is
 CMP / (TOP + 1): a CMP of 0 keeps the output low and a CMP above TOP keeps it high.  So for example with PRE = 0 and
-TOP = 99 at a 50 MHz clock, the PWM frequency is 500 kHz in 1% steps.  The compare flags are set when the counter
+TOP = 99 at the 22.2 MHz clock, the PWM frequency is 222 kHz in 1% steps.  The compare flags are set when the counter
 reaches CMP0 / CMP1, and the overflow flag when it wraps from TOP to 0.
 
 Any event that is enabled in IE requests interrupt vector 9 (with sdcc, `__interrupt(9)`).  Timer 3's interrupt is
@@ -943,17 +865,20 @@ The driver is meant for designs that don't use the TTLC's I/O, and it borrows th
 buffering and its pins.  The pixels are held in the TTLC's 48 output flops, which LISA already writes through the
 TTLC I/O window (TIDX / TDATA at 0x2C / 0x2D): bytes 0-2 are pixel buffer half A and bytes 3-5 half B, each in
 G, R, B order.  The driver sends one half while LISA fills the other, so LISA has a whole pixel time (30 us, about
-1500 clocks at 50 MHz) to load the next pixel.  The line goes out on one of the TTLC's mux 3 pins, so up to five
+670 clocks at 22.2 MHz) to load the next pixel.  The line goes out on one of the TTLC's mux 3 pins, so up to five
 strings can be connected and sent one after another:
 
  | ADDR | Register | Description                                                                         |
  | ---- | -------- | ----------------------------------------------------------------------------------- |
  | 0x40 | WS_CTRL  | [0] EN (WS mode), [3:1] PIN: 0 uo[0], 1 uo[1], 2 uo[2], 3 uo[5], 4 uo[6], [4] IE, [5] DMA, [6] REPEAT |
  | 0x41 | WS_STAT  | Read: [0] FULL_A, [1] FULL_B, [2] BUSY, [3] DONE, [4] UNDERRUN, [5] NEXT, [6] ACTIVE, [7] FRAME.  Write: [0] / [1] set FULL_A / FULL_B, [4] clears UNDERRUN, [6] START, [7] clears FRAME |
- | 0x42 | WS_T0H   | High time of a 0 bit in clocks (reset 20: 0.4 us at 50 MHz)                         |
- | 0x43 | WS_T1H   | High time of a 1 bit in clocks (reset 40: 0.8 us)                                   |
- | 0x44 | WS_TBIT  | A bit is TBIT + 1 clocks (reset 62: 1.26 us)                                        |
- | 0x45 | WS_TRST  | The reset time is (TRST + 1) x 64 clocks (reset 219: 282 us)                        |
+ | 0x42 | WS_T0H   | High time of a 0 bit in clocks (reset 20: 0.9 us at 22.2 MHz; 9 for a WS2812B's 0.4 us) |
+ | 0x43 | WS_T1H   | High time of a 1 bit in clocks (reset 40: 1.8 us; 18 for 0.8 us)                    |
+ | 0x44 | WS_TBIT  | A bit is TBIT + 1 clocks (reset 62: 2.8 us; 27 for 1.26 us)                         |
+ | 0x45 | WS_TRST  | The reset time is (TRST + 1) x 64 clocks (reset 219: 634 us; 17 for 52 us)          |
+
+The reset values of WS_T0H, WS_T1H and WS_TBIT are too long for a WS2812B at this clock: program 9, 18 and 27
+before enabling the driver (WS_TRST may stay).
 
 To send a frame:
 
@@ -996,10 +921,7 @@ should not change while a frame is being sent.  LISA keeps running meanwhile; a 
 
 ## Cycle Counter, Watchdog and PDM Outputs
 
-**The watchdog is not on the GF180 chip** (GF180.md): WDT_CTRL / WDT_KICK / WDT_TIMEOUT / WDT_STAT (0x4C-0x4F) read
-0 and take no writes; the cycle counter and the PDM outputs are there.
-
-**Cycle counter.**  A free-running 32-bit count of clocks (it wraps every 86 seconds at 50 MHz), for timing
+**Cycle counter.**  A free-running 32-bit count of clocks (it wraps every 193 seconds at 22.2 MHz), for timing
 and profiling.  Reading CYC0 latches the upper three bytes, so reading CYC0, CYC1, CYC2, CYC3 in that order
 gives one consistent value; writing CYC0 clears the counter.
 
@@ -1008,7 +930,7 @@ resets the LISA core and its peripherals and the program restarts from address 0
 and the Debug registers are not reset, so the chip keeps running from its flash.  After a watchdog reset
 WDT_STAT's WDRST bit is set (write a 1 to clear it) and the watchdog is disabled, so the program can tell a
 watchdog restart from a power-on and decide whether to enable it again.  The timeout is
-(TIMEOUT + 1) x 2^(16 + SCALE) clocks: 1.3 ms to 43 seconds at 50 MHz.
+(TIMEOUT + 1) x 2^(16 + SCALE) clocks: 2.9 ms to 97 seconds at 22.2 MHz.
 
 **PDM outputs.**  Each of Timer 3's two channels can be a first-order sigma-delta (pulse density) output
 instead of an input capture: Timer 3's IE register bit 5 (channel 0) or 6 (channel 1) selects it.  The
