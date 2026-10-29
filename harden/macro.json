@@ -13,19 +13,20 @@
   "FP_MACRO_HORIZONTAL_HALO": 2,
   "FP_MACRO_VERTICAL_HALO": 1,
   "//": "gf11 (Ken, 2026-10-28): the macro one stripe left, x 701.90 (= 2.24 + 18 x 38.87; its right edge 1377.82, 56 um short of the core's 1433.6, so the A0 / WE pins face a pocket instead of 17 um of die edge), hard 20 um channels (FP_OBSTRUCTIONS: no placement sites, no fill) left of, above and right of it for the pin escapes, and Ken's IHP recipe for the hot spots: soft placement keepouts (PL_SOFT_OBSTRUCTIONS: the global placer leaves them empty, the repair / CTS buffers and the fill may use them) over the areas the detailed router could not finish in gf6 and gf9 - the 30 um bins at the macro's top-left corner (x 690-780, y 150-240 with the macro at 740.77: here the block above the corner and the one left of it), and one above the macro's right end, where the heat map was hot too. The channels are 22.7K um2 of sites (2.4% of the rows), the soft keepouts 18.8K (the placer spreads around them).",
+  "//": "The macro is 675.92 x 172.48 since its antenna rebuild (one spare row of diodes on top; GF180.md): its top edge is at 176.40, the channels and keepouts follow.",
   "FP_OBSTRUCTIONS": [
-    [681.90, 0.0, 701.90, 192.48],
-    [681.90, 172.48, 1433.6, 192.48],
-    [1377.82, 0.0, 1397.82, 192.48]
+    [681.90, 0.0, 701.90, 196.40],
+    [681.90, 176.40, 1433.6, 196.40],
+    [1377.82, 0.0, 1397.82, 196.40]
   ],
   "PL_SOFT_OBSTRUCTIONS": [
-    [641.90, 192.48, 761.90, 262.48],
-    [641.90, 100.0, 681.90, 192.48],
-    [1337.82, 192.48, 1433.6, 262.48]
+    [641.90, 196.40, 761.90, 266.40],
+    [641.90, 100.0, 681.90, 196.40],
+    [1337.82, 196.40, 1433.6, 266.40]
   ],
   "//": "ROUTING_OBSTRUCTIONS (gf12, 2026-10-28): no signal routing on Metal4 over the macro. gf11's router finished (828 violations at its 64th iteration, 298 at its best) with 333 of its last 521 on Metal4 inside the macro's footprint - signal nets (the core's sp, the QSPI read data) shorting the macro's Metal4 (183) and the tile's VPWR / VGND stripes over it (113): the abstract hides only the macro's own stripe columns on Metal4 (the pins must stay), so the global router saw free vertical capacity over the macro and sent nets through, and the detailed router could not thread them between the power stripes. Nothing has to cross a corner macro; its pins are fed by the stripes, which pdngen and ExtendPowerStripes draw before this obstruction is added (step 24).",
   "ROUTING_OBSTRUCTIONS": [
-    ["Metal4", 701.90, 3.92, 1377.82, 172.48]
+    ["Metal4", 701.90, 3.92, 1377.82, 176.40]
   ],
   "//": "FP_PRUNE_THRESHOLD: row stubs shorter than this many sites are dropped (pdngen cannot strap them, PDN-0179); the 36-site stubs between the macro and the core's right edge stay.",
   "FP_PRUNE_THRESHOLD": 11,
