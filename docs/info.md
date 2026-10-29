@@ -1,6 +1,10 @@
 ## What is LISA with TTLC?
 
-(On the GF180 chip: LISA without the TTLC and without the BF16 unit, see the notes in those sections.)
+(On the GF180 chip: LISA without the TTLC and without the BF16 unit, see the notes in those sections.  Its clock
+is 45 ns, 22.2 MHz: the layout meets that at the typical corners with 3-5 ns to spare, and the fast corner at 40 ns;
+at the slow corner, 125 C and 3.0 V, the single-cycle data read and the RAM write enable need about 75 ns, so a chip
+that hot and that low on supply runs at 13 MHz.  The autobaud on the debug UART locks at any rate down to 32 clocks a
+bit, 460800 baud at 22 MHz, so a chip that runs slower is still reachable.)
 
 LISA is a Microcontroller built around a custom 8-Bit Little ISA (LISA)
 microprocessor core.  It includes several standard peripherals that

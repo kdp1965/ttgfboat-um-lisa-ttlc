@@ -10,6 +10,8 @@
 
   "//": "CLOCK_PERIOD in ns.  The sky130 chip was constrained at 30 ns and runs at 50-66 MHz;",
   "//": "GF180's slow corner (ss, 125C, 3.0 V) is several times slower, so 40 ns (25 MHz) to start.",
+  "//": "The promoted layout (gf17, GF180.md) was hardened at 40 ns and misses it by 1-2 ns at the typical corners;",
+  "//": "the chip is specified at 45 ns, 22.2 MHz (info.yaml clock_hz), where those corners have 3-5 ns to spare.",
   "CLOCK_PERIOD": 40,
 
   "//": "PL_MAX_DISPLACEMENT_Y - the legalizer may move a cell this far (um; 100 by default): the short rows beside the RAM32 macro run full and after the hold buffers a few cells there have to leave the pocket.",

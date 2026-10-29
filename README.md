@@ -92,7 +92,7 @@ viewer.  The RAM32 macro itself is built in DFFRAM.librelane
 (`python3 dffram.py --pdk gf180mcuD -b ram_ao -C 30 32x32`, GF180.md).
 
 The timing constraints are `src/lisa.sdc`: LibreLane's `base.sdc` (the
-clock from `CLOCK_PERIOD`, 40 ns here) plus the core's multi-cycle paths
+clock from `CLOCK_PERIOD`, 40 ns here - the chip is specified at 45 ns, 22.2 MHz, see GF180.md) plus the core's multi-cycle paths
 (what the PC, the instruction window, the registered instruction, the
 breakpoint latches and the debugger's registers reach is written two or
 three clocks later).  The registers are found through their Q nets, so

@@ -5,7 +5,7 @@ project:
   discord:      "busy_courgette_50064"
   description:  "8-Bit Microcontroller SOC - the ttsky26d LISA (revision 3) on GF180, without the BF16 unit and the TTLC"
   language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     25000000       # Clock frequency in Hz (or 0 if not applicable); provisional, from the GF180 timing
+  clock_hz:     22222222       # 45 ns (Ken, 2026-10-28, GF180.md): the layout meets 45 ns at the typical corners with 2-4 ns to spare
 
   # How many tiles your design occupies? A GF180 1x1 tile is about 347x161 uM.
   tiles: "4x4"          # 1440.32 x 736.96 um, the largest GF180 tile (valid: 1x1, 1x2, 2x2, 3x2, 4x2, 3x4, 4x4)
