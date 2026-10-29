@@ -118,12 +118,16 @@ module tb
    // X lines (an interrupt entry) are written from reset, so the bank
    // switches before the trigger can be compared too.
    // ==========================================================================
+   // the clock count: the trace's time stamp, and lisa.py's run() times its
+   // SEND_DELAY by it - so it is kept at gate level too
+   reg [31:0]     tr_cycle = 0;
+   always @(posedge clk)
+      tr_cycle <= tr_cycle + 1;
 `ifndef GL_TEST                        // the trace reads the RTL's internal signals: not at gate level
    integer        tr_fd = 0;
    reg [1023:0]   tr_file;
    reg [31:0]     tr_pc = 32'hFFFF_FFFF, tr_cb = 32'hFFFF_FFFF, tr_count = 32'hFFFF_FFFF;
    reg            tr_on = 0, tr_armed = 0, tr_isr_r = 0;
-   reg [31:0]     tr_cycle = 0;
    // the clock the fetch completes (the core holds a fetch while the store
    // of the instruction before it is still pending: d_we_r)
    wire           tr_fetch = lisa.core_i_fetch & lisa.core_i_ready & !lisa.i_lisa_core.d_we_r;
@@ -140,7 +144,6 @@ module tb
    end
    always @(posedge clk)
    begin
-      tr_cycle <= tr_cycle + 1;
       tr_isr_r <= lisa.i_lisa_core.isr_jump;
       if (tr_fd != 0)
       begin
