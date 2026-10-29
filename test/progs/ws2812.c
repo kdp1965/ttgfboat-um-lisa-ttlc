@@ -5,7 +5,7 @@
  * (tb.v ws2812_rx: pixels, a hash of them, frames, malformed pulses) and
  * counts rising edges on uo[0], uo[5], uo[6], which must stay low.
  *
- *  1 the registers' reset values (the 50 MHz timing)
+ *  1 the registers' reset values (the 22.2 MHz timing: 9 / 18 / 27 / 97)
  *  2 frame 1: 8 pixels on uo[1] through the ping-pong halves, DONE after
  *    it, no underrun
  *  3 frame 2: 3 pixels on uo[2]
@@ -17,8 +17,8 @@
  * The pixels go in through ws_put, a 16-instruction assembly loader: in C
  * a pixel took 1300-2000 clocks on the Arty (instruction fetch from its
  * flash Pmod), as long as sending one, so the line went low between pixels
- * (UNDERRUN).  The bit is 75 clocks (WS_TBIT 74, 1.5 us at 50 MHz: within
- * the WS2812B's 1.25 +- 0.6 us), a pixel 1800 clocks. */
+ * (UNDERRUN).  The bit is 75 clocks (WS_TBIT 74: 3.4 us at 22.2 MHz - long,
+ * but the bench's receiver measures only the high time), a pixel 1800 clocks. */
 #include "harness.h"
 #include <tt07.h>
 
@@ -122,10 +122,10 @@ void main(void)
 
   puts("ws2812\n");
 
-  CHECK(1, WS_CTRL == 0 && WS_T0H == 20 && WS_T1H == 40 && WS_TBIT == 62 && WS_TRST == 219 &&
+  CHECK(1, WS_CTRL == 0 && WS_T0H == 9 && WS_T1H == 18 && WS_TBIT == 27 && WS_TRST == 97 &&
            (WS_STAT & (DONE_F | FULL_A | FULL_B | BUSY)) == DONE_F);
 
-  WS_TBIT = 74;                 /* a 1.5 us bit: 1800 clocks a pixel */
+  WS_TBIT = 74;                 /* a 75-clock bit: 1800 clocks a pixel */
 
   /* frame 1: 8 pixels on uo[1] */
   WS_CTRL = EN | PIN(1);

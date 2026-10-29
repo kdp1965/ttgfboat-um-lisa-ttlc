@@ -32,7 +32,7 @@ flops (ttlc_io.v output_pins), which the core already writes through the
 TTLC I/O window (RESPIN 30, TIDX / TDATA) - two pixels, half A in bytes
 0-2 and half B in bytes 3-5, each G, R, B, sent MSB first - and the line
 goes out on one of the TTLC's mux-3 pins.  While one half is sent the core
-fills the other (a pixel is 24 x 1.25 us = 30 us, 1500 clocks at 50 MHz).
+fills the other (a pixel is 24 x 1.25 us = 30 us, 670 clocks at 22.2 MHz).
 The MC14500B must not run meanwhile (it writes the same flops): it is
 halted from reset until the debugger starts it.
 
@@ -54,10 +54,10 @@ halted from reset until the debugger starts it.
                    write: [0] / [1] set FULL_A / FULL_B (the half is loaded),
                    [4] a 1 clears UNDERRUN, [6] START (DMA: a frame), [7]
                    a 1 clears FRAME
-   0x42  WS_T0H    a 0 bit is high T0H clocks        (reset 20: 0.40 us at 50 MHz)
-   0x43  WS_T1H    a 1 bit is high T1H clocks        (reset 40: 0.80 us)
-   0x44  WS_TBIT   a bit is TBIT + 1 clocks          (reset 62: 1.26 us)
-   0x45  WS_TRST   the reset is (TRST + 1) x 64 clocks low (reset 219: 282 us,
+   0x42  WS_T0H    a 0 bit is high T0H clocks        (reset 9: 0.41 us at 22.2 MHz)
+   0x43  WS_T1H    a 1 bit is high T1H clocks        (reset 18: 0.81 us)
+   0x44  WS_TBIT   a bit is TBIT + 1 clocks          (reset 27: 1.26 us)
+   0x45  WS_TRST   the reset is (TRST + 1) x 64 clocks low (reset 97: 282 us,
                    the WS2812B's 280; the older parts need 50)
 
 The engine sends half A, then B, then A ..., each once it is FULL, clearing
@@ -176,10 +176,10 @@ module lisa_ws2812
       if (~rst_n)
       begin
          ctrl     <= 8'h0;
-         t0h      <= 8'd20;
-         t1h      <= 8'd40;
-         tbit     <= 8'd62;
-         trst     <= 8'd219;
+         t0h      <= 8'd9;                    // the 45 ns clock's values (Ken, 2026-10-29; the sky130
+         t1h      <= 8'd18;                   // chips' 20 / 40 / 62 / 219 were 50 MHz values)
+         tbit     <= 8'd27;
+         trst     <= 8'd97;
          full     <= 2'b00;
          next     <= 1'b0;
          busy     <= 1'b0;

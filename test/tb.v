@@ -693,9 +693,10 @@ module spi_dev
 endmodule
 
 // A WS2812B's input as the testbench sees it (RESPIN 33): a high pulse of
-// 12-28 clocks is a 0, 32-48 a 1 (the driver's 20 / 40 at 50 MHz), any
-// other a bad one; 24 bits MSB first are a pixel (G, R, B); the line low
-// for 10000 clocks ends a frame (the part latches) and drops a partial pixel.
+// 5-13 clocks is a 0, 14-24 a 1 (the driver's 9 / 18 at 22.2 MHz; the sky130
+// chips' 20 / 40 at 50 MHz had 12-28 / 32-48), any other a bad one; 24 bits
+// MSB first are a pixel (G, R, B); the line low for 4444 clocks (200 us at
+// 45 ns) ends a frame (the part latches) and drops a partial pixel.
 module ws2812_rx
 (
    input  wire          clk,
@@ -723,7 +724,7 @@ module ws2812_rx
       else
       begin
          if (low != 16'hFFFF) low <= low + 16'h1;
-         if (low == 16'd10000)
+         if (low == 16'd4444)
          begin
             if (inframe) frames <= frames + 16'h1;
             inframe <= 1'b0;
@@ -732,18 +733,18 @@ module ws2812_rx
       end
       if (last && !din)
       begin
-         if ((width >= 12 && width <= 28) || (width >= 32 && width <= 48))
+         if ((width >= 5 && width <= 13) || (width >= 14 && width <= 24))
          begin
             if (nbits == 5'd23)
             begin
                count   <= count + 16'h1;
-               hash    <= ({hash[26:0], 5'b0} + hash) ^ {8'h0, pix[22:0], width >= 32};
+               hash    <= ({hash[26:0], 5'b0} + hash) ^ {8'h0, pix[22:0], width >= 14};
                nbits   <= 5'h0;
                inframe <= 1'b1;
             end
             else
                nbits <= nbits + 5'h1;
-            pix <= {pix[22:0], width >= 32};
+            pix <= {pix[22:0], width >= 14};
          end
          else if (live)
             bad <= bad + 16'h1;
