@@ -7,11 +7,6 @@ UARTs and I2C. TTLC is a Programmable Logic Controller for Tiny Tapeout
 (TTLC) build around a functional equivalent of a Motorola mc1500b system
 controller.
 
-LISA runs from a 45 ns clock (22.2 MHz).  At the slow corner, 125 C and a 3.0 V supply, the single-cycle data
-read and the RAM write enable need about 85 ns, so a part that hot and that low on supply runs at 11 MHz; the
-autobaud on the debug UART locks at any rate down to 32 clocks a bit (460800 baud at 22 MHz), so a part clocked
-slower is still reachable.
-
 The following is a block diagram of the design:
 
 ![](block_diag.png)
@@ -24,6 +19,7 @@ The following is a block diagram of the design:
       - Interrupt control bits
 
 ### Deailed list of the features
+   - 22.2 MHz clock typical.  11 MHz at the slow corner (125 C / 3.0 V supply)
    - Harvard architecture LISA Core (16-bit instruction, 22-bit address space)
    - Motorola MC14500B System Controller with PC, Stack, I/O and stroage
    - Debug interface
@@ -41,13 +37,14 @@ The following is a block diagram of the design:
       * Data fetch
       * WS2812 pixel data "DMA" fetch (shared with TTLC instruction)
       * Quad or Single SPI.  Hereafter called QSPI, but supports either.
+   - Hardware 8x8 integer multiplier
+   - Hardware 16/8 or 16/16 integer divider
    - Onboard 128 Byte RAM for DATA / DATA CACHE
    - Data bus CACHE controller with 8 16-byte CACHE lines
    - Streaming QSPI instruction fetch controller
    - Instruction CACHE with a single 8-instruction CACHE line for small loops
    - Two 16-bit programmable timers (with pre-divide)
    - Timer 3: a 16-bit timer with two PWM outputs, two input captures and PDM output
-   - WS2812B (NeoPixel) LED string driver on up to five pins, using the TTLC's output flops as its pixel buffer
    - Debug UART available to LISA core also
    - Dedicated UART2 that is not shared with the debug interface
    - 8-bit Input port (PORTA)
@@ -55,12 +52,11 @@ The following is a block diagram of the design:
    - 4-bit BIDIR port (PORTC)
    - I2C Master controller
    - SPI Master controller (two chip selects, its own pins or shared with the TTLC's)
-   - Hardware 8x8 integer multiplier
-   - Hardware 16/8 or 16/16 integer divider
-   - Programmable I/O mux for maximum flexibility of I/O usage.
+   - WS2812B NeoPixel LED string driver (when not using TTLC) on up to five pins
    - TTLC 48-Outputs plus 48-Inputs via external 74HC595 / 74HC165 chips
    - TTLC 32-Bit internal storage plus 16 bit I/O to LISA (8 each direction)
    - TTLC I/O readable / writable by LISA as bytes, with LISA-started I/O scans
+   - Programmable I/O mux for maximum flexibility of I/O usage.
 
 A 32x32 1RW [DFFRAM](https://github.com/AUCOHL/DFFRAM) macro implements a 128 byte RAM module.
 The RAM can be used either as a DATA cache for the processor, giving a 32K Byte address range,
@@ -102,7 +98,7 @@ terminated with a LINFEED plus CR sequence (0x0A, 0x0D).  All HEX values must be
 
  | Command   | Description                                                          |
  | --------- | -------------------------------------------------------------------- |
- | v         | Report Debugger version.  Should return: lisav1.2                    |
+ | v         | Report Debugger version.  Should return: lisav2.0                    |
  | wAAVVVV   | Write 16-bit HEX value 'VVVV' to register at 8-bit HEX address 'AA'. |
  | rAA       | Read 16-bit register value from 8-bit HEX address 'AA'.              |
  | t         | Reset the LISA core.                                                 |
@@ -157,7 +153,7 @@ that specify the operating mode per CE, and CE selection bits for each of the th
    - Debug Interface
    - LISA1 (Instruction fetch)
    - LISA2 (Data read/write)
-   - MC14550B (Instruction fetch)
+   - TTLC / MC14550B (Instruction fetch)
 
 The arbiter gives priority to the Debug accesses and processes LISA1 and LISA2 requests using
 a round-robbin approach.  Each requestor provides a 24-bit address along with 16-bit data read/write.
@@ -872,13 +868,10 @@ strings can be connected and sent one after another:
  | ---- | -------- | ----------------------------------------------------------------------------------- |
  | 0x40 | WS_CTRL  | [0] EN (WS mode), [3:1] PIN: 0 uo[0], 1 uo[1], 2 uo[2], 3 uo[5], 4 uo[6], [4] IE, [5] DMA, [6] REPEAT |
  | 0x41 | WS_STAT  | Read: [0] FULL_A, [1] FULL_B, [2] BUSY, [3] DONE, [4] UNDERRUN, [5] NEXT, [6] ACTIVE, [7] FRAME.  Write: [0] / [1] set FULL_A / FULL_B, [4] clears UNDERRUN, [6] START, [7] clears FRAME |
- | 0x42 | WS_T0H   | High time of a 0 bit in clocks (reset 20: 0.9 us at 22.2 MHz; 9 for a WS2812B's 0.4 us) |
- | 0x43 | WS_T1H   | High time of a 1 bit in clocks (reset 40: 1.8 us; 18 for 0.8 us)                    |
- | 0x44 | WS_TBIT  | A bit is TBIT + 1 clocks (reset 62: 2.8 us; 27 for 1.26 us)                         |
- | 0x45 | WS_TRST  | The reset time is (TRST + 1) x 64 clocks (reset 219: 634 us; 17 for 52 us)          |
-
-The reset values of WS_T0H, WS_T1H and WS_TBIT are too long for a WS2812B at this clock: program 9, 18 and 27
-before enabling the driver (WS_TRST may stay).
+ | 0x42 | WS_T0H   | High time of a 0 bit in clocks (reset 9: 0.41 us at 22.2 MHz)                        |
+ | 0x43 | WS_T1H   | High time of a 1 bit in clocks (reset 18: 0.81 us)                                  |
+ | 0x44 | WS_TBIT  | A bit is TBIT + 1 clocks (reset 27: 1.26 us)                                        |
+ | 0x45 | WS_TRST  | The reset time is (TRST + 1) x 64 clocks (reset 97: 282 us, the WS2812B's 280)       |
 
 To send a frame:
 
@@ -949,17 +942,133 @@ A channel left in capture mode is PWM and input capture as before.
  | 0x3E      | T3 IE       | [5] channel 0 PDM, [6] channel 1 PDM (bits 4:0: Timer 3's interrupts)      |
  | 0x35/0x37 | T3 CMPn_L   | In PDM mode: the channel's level, CMPn[7:0] / 256                          |
 
+## Software
+
+Everything below is on GitHub under kdp1965:
+
+ | Repository | What it holds |
+ | ---------- | ------------- |
+ | [sdcc-lisa](https://github.com/kdp1965/sdcc-lisa) (branch `lisa`) | SDCC with a LISA port: `sdcc -mlisa`, the assembler `sdaslisa`, the linker `sdldlisa`, the runtime library |
+ | [lisa-tools](https://github.com/kdp1965/lisa-tools) | `lisa_sim` (the instruction set simulator), `lisa_ide` (a source-level debugger for the chip), `lisa_pydb` (a Python flash programmer / debugger), `lisa_cdb` (the debug-info reader they share), `sdcc_test` (the compiler's self-checking test suite), the original assembler, linker and C compiler |
+ | [nuttx](https://github.com/kdp1965/nuttx) (branch `lisa`) | Apache NuttX with the LISA architecture and the `arty` board |
+ | [nuttx-apps](https://github.com/kdp1965/nuttx-apps) (branch `lisa`) | The NuttX applications (nsh and the examples) for it |
+ | [ttgfboat-um-lisa-ttlc](https://github.com/kdp1965/ttgfboat-um-lisa-ttlc) | This chip: the RTL, the testbench (`test/`, cocotb) and the test programs (`test/progs/`) |
+ | [tt07-um-lisa-ttlc](https://github.com/kdp1965/tt07-um-lisa-ttlc) | The first LISA chip; its `lisa-test/` is LISA Commander, the browser-based programmer / tester for the Tiny Tapeout demo board |
+
+Clone `sdcc-lisa` inside `lisa-tools` (`lisa-tools/sdcc-lisa`) and `nuttx` and `nuttx-apps` beside `lisa-tools`:
+the makefiles find each other that way.
+
+### The C toolchain: SDCC
+
+`sdcc -mlisa` is a port of SDCC.  The LISA on this chip is the third revision of the core (24-bit IX, SP and
+return addresses, a flat 8 MB data space through the QSPI PSRAM, 128 code banks of 32 K words), which the
+compiler targets with `--rev3`:
+
+```
+    git clone -b lisa https://github.com/kdp1965/sdcc-lisa.git lisa-tools/sdcc-lisa
+    cd lisa-tools/sdcc-lisa && mkdir build && cd build
+    ../configure --disable-mcs51-port ... --disable-ucsim --disable-sdcdb --disable-packihx --disable-sdbinutils
+    make                               # build/bin/sdcc, sdaslisa, sdldlisa and the lisa-rev3 runtime library
+```
+
+`README-lisa.md` in that tree has the exact configure line (every other port disabled, a few macOS settings) and
+the design notes (`src/lisa/PLAN.md`: the ABI, the code generator).  Using it:
+
+```
+    sdcc -mlisa --rev3 -o prog.ihx prog.c                # Intel HEX; its byte addresses are 2 x the word address
+    sdcc -mlisa --rev3 --debug -o prog.ihx prog.c        # also prog.cdb: the debug information for lisa_sim / lisa_ide
+    sdcc -mlisa --rev3 --model-huge -c part.c            # the huge model: code in banks, far data (what NuttX uses)
+```
+
+   - Peripheral registers are `__sfr` objects at their direct addresses: `__sfr __at(0x210) UART_TX;` (the peripheral
+     space is 0x200 - 0x3FF).
+   - A byte first parameter travels in A, the rest on the stack; a byte result comes back in A, an `int` or a
+     pointer in IX.  `printf` needs an `int putchar(int c)` from the program.
+   - `--stack-loc` sets the initial SP; `--debug` leaves the code unchanged and writes the `.cdb` beside the `.ihx`.
+   - `make check REV3=1` in `lisa-tools/sdcc_test` builds the self-checking C programs and runs them on `lisa_sim`
+     (`test/run_suite.sh` in this repository runs the same programs on the chip's RTL testbench).
+
+The program goes into the QSPI flash at word address 0, where the core starts after reset; data lives in the
+QSPI PSRAM behind the data cache.  On the Tiny Tapeout demo board the image is loaded through the debug UART:
+
+   - `lisa_ide` (`make` in `lisa-tools/lisa_ide`, then `./lisa`): `connect /dev/cu.usbmodemXXXX` (the board's REPL;
+     it selects the design and starts the UART pass-through), `load prog.ihx` (erase, program and verify the flash
+     through the debugger), `debug prog.ihx` (the `.cdb`: the sources in tabs, `break main` or `break file:line`, `run`, `next`,
+     `into`, `finish`, `print expr`, `locals`, `bt`), `step`, `read` / `write` of the debug registers, `term` for the
+     program's UART.
+   - LISA Commander (`tt07-um-lisa-ttlc/lisa-test`): the same from a browser, and its hardware test runs a program
+     from the command line (`node hw_test.mjs connect ihx=prog.ihx disconnect`).
+   - `lisa_pydb`: the Python class behind both (erase / program the flash, start and stop the core, read and write
+     RAM and the debug registers), for scripts.
+
+### The simulator: lisa_sim
+
+`lisa_sim` (`make` in `lisa-tools/lisa_sim`) is a C++ instruction-set simulator of the chip: the core, the data
+cache and its PSRAM, the peripherals, both UARTs, the divider; `--rev3` selects this core.
+
+```
+    lisa_sim --rev3 prog.ihx                     # load and enter the command line (lisa>)
+    lisa_sim --rev3 -r -t prog.ihx               # run at once with an instruction trace
+    lisa_sim --rev3 -b -c 500000 prog.ihx        # batch: run N clocks, the program's UART output on stdout, exit
+    lisa_sim --rev3 -p /dev/ttys00A prog.ihx     # the program's UART on a host serial port or pty (socat makes a pair)
+    lisa_sim --rev3 --spi-flash image.bin ...    # a SPI NOR flash on the SPI master's CS0
+```
+
+At the `lisa>` prompt: `load`, `step [N]`, `run`, `halt`, `continue`, `regs`, `mem addr [len]`, `bp` / `bpd` / `bpl`
+/ `bpc` (breakpoints), `dis [addr] [count]`, `trace on|off`, `uart text` (type into the program's UART), `help`.
+With the `.cdb` from `--debug` it is a source-level debugger too: `break file:line` / `break func`, `list`,
+`next`, `into`, `finish`, `print expr` (`*`, `&`, `[i]`, `.m`, `->m`, globals, locals, code-space constants,
+peripheral registers), `locals`, `bt`.  `--icache` models the instruction fetch for performance studies and
+`--cap-wave N` puts a square wave on Timer 3's capture inputs; `--help` lists the rest.
+
+### NuttX
+
+Apache NuttX runs on this chip: the `lisa` architecture and the `arty` board (the board support is the
+same for the simulator, the FPGA prototype and the chip: UART1 as the console, timer 1 as the system tick,
+the I2C master for the display configurations).  The kernel is built in the huge model with 24-bit pointers,
+the data space is the flat 8 MB of the PSRAM (the idle thread's stack at the top, the heap from the end of the
+data areas to it) and the code is laid out in 16 K-word (32 KB) banks.
+
+```
+    git clone -b lisa https://github.com/kdp1965/nuttx.git
+    git clone -b lisa https://github.com/kdp1965/nuttx-apps.git
+    cd nuttx
+    ./tools/configure.sh -a ../nuttx-apps arty:nsh       # or arty:oled, arty:slcd, arty:nx, arty:smartfs
+    make -j8                                             # nuttx.ihx (+ nuttx.map, nuttx.cdb)
+```
+
+`CONFIG_LISA_SDCC_PATH` in the configuration points at the compiler (`../lisa-tools/sdcc-lisa/build`).  The
+configurations: `nsh` is the NuttShell on the console; `oled` adds the framebuffer, an SSD1306-class OLED on the
+I2C master and the `oledtext` and `fb` examples; `nx` the NX graphics examples on that OLED (`nxhello`, `nxterm`
+and `lisasplash`); `slcd` a character LCD on an I2C backpack; `smartfs` a SmartFS file system on an SST25-type
+SPI flash on the SPI master.  `make menuconfig` configures as on
+any NuttX target.  To run:
+
+```
+    ../lisa-tools/lisa_sim/lisa_sim --rev3 -b -c 6000000 nuttx.ihx    # the banner and the nsh> prompt on stdout
+    socat -d -d pty,raw,echo=0 pty,raw,echo=0                          # a pty pair for an interactive session ...
+    ../lisa-tools/lisa_sim/lisa_sim --rev3 -p /dev/ttys00A nuttx.ihx   # ... the kernel's console on one end, a
+                                                                       # terminal (screen, minicom) on the other
+```
+
+On the chip, `nuttx.ihx` is programmed into the flash like any other image (`lisa_ide`'s `load`, or LISA
+Commander) and the console is UART1, the RX / TX pair the autobaud detects (the demo board's RP2040 UART or the
+UART Pmod); the kernel boots at reset.  The picture is the `nx` configuration's `lisasplash` on the OLED:
+
+![](LISA_GF180.jpg)
+
+After a change in the code sizes the per-file bank map is regenerated and the objects rebuilt
+(`arch/lisa/src/tools/banks_pack.py > boards/lisa/lisa/arty/scripts/banks.map`, then a clean build); the
+board's `README.md` in the nuttx tree describes the port - the register frame, the context switch, the
+interrupt entry, the heap regions - in detail.
+
 ## How to test
 
-You will need to download and compile the C-based assembler, linker and C compiler I wrote (will make available)
-Also need to download the Python based debugger.
-
-  - Assembler is fully functional
-    - Includes limited libraries for crt0, signed int compare, math, etc.
-    - Libraries are still a work in progress
-  - Linker is fully functional
-  - C compiler is somewhat functional (no float support at the moment) but has *many* bugs in the generated code and is still a work in progress.
-  - Python debugger can erase/program the FLASH, program SPI SRAM, start/stop the LISA core, read SRAM and registers.
+The Software section above has the toolchain: `sdcc -mlisa --rev3` builds a program, `lisa_sim --rev3` runs it on
+the host, and `lisa_ide` or LISA Commander program it into the demo board's flash through the debug UART and
+debug it there.  `test/` in the repository is the cocotb testbench (`make` runs the default test, `make TTLC=1`,
+`make WS2812=1` and the others the peripheral tests; `test/run_suite.sh chip REV3=1` the compiler's suite on the
+RTL; `make GATES=yes` the same on the hardened netlist).
 
 \clearpage
 ### Legend for Pinout
