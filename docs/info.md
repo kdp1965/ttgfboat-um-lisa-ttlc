@@ -19,7 +19,7 @@ The following is a block diagram of the design:
       - Interrupt control bits
 
 ### Deailed list of the features
-   - 22.2 MHz clock typical.  11 MHz at the slow corner (125 C / 3.0 V supply)
+   - 22.2 MHz clock typical.  12 MHz at the slow corner (125 C / 3.0 V supply)
    - Harvard architecture LISA Core (16-bit instruction, 22-bit address space)
    - Motorola MC14500B System Controller with PC, Stack, I/O and stroage
    - Debug interface
