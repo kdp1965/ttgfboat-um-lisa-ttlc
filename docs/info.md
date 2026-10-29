@@ -1,9 +1,9 @@
 ## What is LISA with TTLC?
 
-(On the GF180 chip: LISA without the TTLC and without the BF16 unit, see the notes in those sections.  Its clock
-is 45 ns, 22.2 MHz: the layout meets that at the typical corners with 3-5 ns to spare, and the fast corner at 40 ns;
-at the slow corner, 125 C and 3.0 V, the single-cycle data read and the RAM write enable need about 75 ns, so a chip
-that hot and that low on supply runs at 13 MHz.  The autobaud on the debug UART locks at any rate down to 32 clocks a
+(On the GF180 chip: LISA without the BF16 unit, and with the TTLC's storage at 32 bits instead of 64, see the notes
+in those sections.  Its clock is 45 ns, 22.2 MHz: the layout meets that at the typical corners with 0.4-2.5 ns to
+spare, and the fast corner at 40 ns; at the slow corner, 125 C and 3.0 V, the single-cycle data read and the RAM
+write enable need about 88 ns, so a chip that hot and that low on supply runs at 11 MHz.  The autobaud on the debug UART locks at any rate down to 32 clocks a
 bit, 460800 baud at 22 MHz, so a chip that runs slower is still reachable.)
 
 LISA is a Microcontroller built around a custom 8-Bit Little ISA (LISA)
@@ -59,7 +59,7 @@ The following is a block diagram of the design:
    - Hardware 16/8 or 16/16 integer divider
    - Programmable I/O mux for maximum flexibility of I/O usage.
    - TTLC 48-Outputs plus 48-Inputs via external 74HC595 / 74HC165 chips
-   - TTLC 64-Bit internal storage plus 16 bit I/O to LISA (8 each direction)
+   - TTLC 64-Bit internal storage plus 16 bit I/O to LISA (8 each direction) (32 storage bits on the GF180 chip)
    - TTLC I/O readable / writable by LISA as bytes, with LISA-started I/O scans
 
 A 32x32 1RW [DFFRAM](https://github.com/AUCOHL/DFFRAM) macro implements a 128 byte RAM module.
@@ -684,13 +684,9 @@ the result back with 'tfa'.  The facc and f0 - f3 registers can also be read thr
 
 ## The Tiny Tapeout Logic Controller (TTLC)
 
-**Not on the GF180 chip.**  The sky130 LISA chips have the TTLC this section describes; on GF180 it is
-compiled out (GF180.md) - all that remains of it is the I/O block's 48 output flops, which the WS2812B
-driver uses as its pixel store and the core writes through the TTLC I/O window's TIDX / TDATA (bytes 0-5;
-the other bytes read 0, including the 64-bit storage's 12-15 and 20-23, so there is no Port D to LISA and no
-TTLC interrupt; a scan START does nothing), and its QSPI fetch channel as the driver's DMA engine.  The debug
-registers 0x40, 0x41, 0x48-0x4a and the TTLC base 0x1f read 0 and take no writes; 0x15 holds only the LISA2
-select.  The section is kept for the sky130 chips.
+**On the GF180 chip with 32 storage bits** (GF180.md): everything in this section applies, except that the
+storage is bits 0-31 only - the ICU's addresses 160-191 and the TTLC I/O window's TDATA bytes 20-23 (the
+sky130 chips' bits 32-63) read 0 and ignore writes.
 
 The second subsystem within this design is a small PLC type circuit.  It is architected around a 1-bit processor from 1977
 designed by Motorola ... the MC14500B Industrial Control Unit (ICU).  The TTLC wraps the ICU "processor" with an instruction
